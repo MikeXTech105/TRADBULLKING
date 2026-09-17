@@ -470,6 +470,65 @@ const initAngelOneSession = async (req, res) => {
   }
 };
 
+// =================== ANGELONE INSTRUMENTS ===================
+
+/**
+ * @route   GET /api/admin/angelone/instruments
+ * @desc    Fetch all instruments from AngelOne with optional search/filter
+ */
+const getAngelOneInstruments = async (req, res) => {
+  try {
+    const { search, exchange, instrumenttype, page = 1, limit = 50 } = req.query;
+
+    const allInstruments = await angeloneService.getAllInstruments();
+
+    let filtered = allInstruments;
+
+    if (exchange) {
+      filtered = filtered.filter(
+        (i) => i.exch_seg && i.exch_seg.toUpperCase() === exchange.toUpperCase()
+      );
+    }
+
+    if (instrumenttype) {
+      filtered = filtered.filter(
+        (i) => i.instrumenttype && i.instrumenttype.toUpperCase() === instrumenttype.toUpperCase()
+      );
+    }
+
+    if (search) {
+      const keyword = search.toLowerCase();
+      filtered = filtered.filter(
+        (i) =>
+          (i.name && i.name.toLowerCase().includes(keyword)) ||
+          (i.symbol && i.symbol.toLowerCase().includes(keyword)) ||
+          (i.token && i.token.toString().includes(keyword))
+      );
+    }
+
+    const total = filtered.length;
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+    const paginated = filtered.slice(skip, skip + limitNum);
+
+    return res.status(200).json({
+      success: true,
+      message: 'AngelOne instruments fetched successfully',
+      data: paginated,
+      pagination: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        pages: Math.ceil(total / limitNum),
+      },
+    });
+  } catch (error) {
+    logger.error('Admin getAngelOneInstruments error:', error.message);
+    return errorResponse(res, 'Failed to fetch AngelOne instruments', 500);
+  }
+};
+
 // =================== LEADERBOARD MANAGEMENT ===================
 
 /**
@@ -690,6 +749,7 @@ module.exports = {
   deleteStock,
   syncStockPrices,
   initAngelOneSession,
+  getAngelOneInstruments,
   getAllDummyLeaderboard,
   addDummyLeaderboard,
   updateDummyLeaderboard,
