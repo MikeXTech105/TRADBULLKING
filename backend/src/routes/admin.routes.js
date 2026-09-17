@@ -358,6 +358,50 @@ router.post('/stocks/sync-prices', adminController.syncStockPrices);
  */
 router.post('/angelone/session', adminController.initAngelOneSession);
 
+/**
+ * @swagger
+ * /admin/angelone/instruments:
+ *   get:
+ *     summary: Fetch all instruments from AngelOne with optional search and filters
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by symbol, name, or token
+ *       - in: query
+ *         name: exchange
+ *         schema:
+ *           type: string
+ *           enum: [NSE, BSE, NFO, MCX, CDS]
+ *         description: Filter by exchange
+ *       - in: query
+ *         name: instrumenttype
+ *         schema:
+ *           type: string
+ *           enum: [AMXIDX, OPTIDX, FUTIDX, FUTSTK, OPTSTK, EQ]
+ *         description: Filter by instrument type
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *     responses:
+ *       200:
+ *         description: Paginated list of AngelOne instruments
+ *       503:
+ *         description: Failed to fetch instruments
+ */
+router.get('/angelone/instruments', adminController.getAngelOneInstruments);
+
 // =================== LEADERBOARD MANAGEMENT ===================
 
 /**
