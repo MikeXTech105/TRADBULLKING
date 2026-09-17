@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --check app.js)",
+      "Bash(node --check server.js)",
+      "Bash(node --check src/utils/constants.js)",
+      "Bash(node --check src/models/User.js)",
+      "Bash(node --check src/services/trade.service.js)",
+      "Bash(node --check src/controllers/auth.controller.js)",
+      "Bash(node --check src/controllers/admin.controller.js)",
+      "Bash(node --check src/controllers/order.controller.js)",
+      "Bash(node --check src/controllers/payment.controller.js)",
+      "Bash(node --check src/routes/index.js)",
+      "Bash(node --check src/services/angelone.service.js)",
+      "Bash(node --check src/services/cashfree.service.js)",
+      "Bash(node --check src/services/websocket.service.js)",
+      "Bash(node --check swagger/swagger.js)",
+      "Bash(npm install:*)"
+    ]
+  }
+}
