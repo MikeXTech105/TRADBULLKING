@@ -1,0 +1,481 @@
+:root {
+  font-family: Inter, "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+a {
+  text-decoration: none;
+  color: inherit;
+}
+button,
+a,
+input {
+  -webkit-tap-highlight-color: transparent;
+}
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid #d92332;
+  outline-offset: 4px;
+}
+.auth-layout {
+  display: grid;
+  grid-template-columns: 46% 54%;
+  min-height: 100dvh;
+}
+.brand-panel {
+  position: relative;
+  overflow: hidden;
+  background: #101114;
+  color: #fff;
+  padding: 48px 56px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 760px;
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 100%;
+  width: 260px;
+  position: relative;
+  z-index: 1;
+}
+.brand img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 3px;
+}
+.brand strong {
+  font-size: 24px;
+  letter-spacing: -1px;
+}
+.brand strong span {
+  color: #e12736;
+}
+.admin-label {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  border: 1px solid #777;
+  padding: 6px;
+  border-radius: 3px;
+}
+.brand:has(.admin-label) {
+  width: 300px;
+}
+.brand:has(.admin-label) img {
+  width: calc(100% - 72px);
+  min-width: 0;
+}
+.brand-story {
+  position: relative;
+  z-index: 1;
+  margin: 65px 0 95px;
+}
+.eyebrow,
+.form-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #bbbcc1;
+}
+.red-line {
+  width: 26px;
+  height: 2px;
+  background: #e72d3c;
+}
+.brand-story h1 {
+  font-size: clamp(40px, 4.4vw, 68px);
+  line-height: 1.12;
+  letter-spacing: -2.8px;
+  font-weight: 650;
+  margin: 26px 0;
+}
+.brand-story h1 span {
+  color: #ed3947;
+}
+.brand-story p {
+  color: #a5a6ad;
+  max-width: 340px;
+  font-size: 14px;
+  line-height: 1.8;
+}
+.brand-motto {
+  margin-top: 35px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 10px;
+  letter-spacing: 1.6px;
+  font-weight: 600;
+}
+.brand-motto svg {
+  color: #ed3947;
+}
+.motto-divider { color: #ed3947; }
+.mobile-tagline { color: #878a91; font-size: 8px; letter-spacing: 1.4px; margin-top: 10px; }
+.panel-bottom {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #909299;
+  font-size: 11px;
+}
+.edition {
+  margin-left: auto;
+  font-size: 9px;
+  letter-spacing: 1px;
+}
+.decor {
+  position: absolute;
+  bottom: -65px;
+  right: -65px;
+  width: 350px;
+  height: 310px;
+  transform: rotate(-30deg);
+  display: flex;
+  gap: 24px;
+  opacity: 0.35;
+}
+.decor span {
+  border: 1px solid #36373e;
+  width: 48px;
+  height: 360px;
+}
+.form-panel {
+  padding: 42px 56px 24px;
+  display: flex;
+  flex-direction: column;
+  background: #fafafa;
+}
+.portal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #8a8c92;
+  letter-spacing: 1.4px;
+}
+.portal-nav a {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  color: #51545b;
+  letter-spacing: 0;
+  font-size: 12px;
+}
+.portal-nav a:hover {
+  color: #d92332;
+}
+.form-content {
+  width: 100%;
+  max-width: 410px;
+  margin: auto;
+  padding: 65px 0;
+}
+.form-symbol {
+  width: 48px;
+  height: 48px;
+  border: 1px solid #e7e7e9;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  margin-bottom: 25px;
+  color: #d92332;
+}
+.form-eyebrow {
+  color: #868991;
+  font-size: 9px;
+  letter-spacing: 1.6px;
+}
+.form-content h2 {
+  font-size: 34px;
+  line-height: 1.2;
+  letter-spacing: -1.3px;
+  margin: 12px 0 10px;
+  font-weight: 650;
+}
+.form-description {
+  font-size: 14px;
+  color: #7a7d84;
+  margin: 0 0 34px;
+}
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: 21px;
+}
+.fields .MuiOutlinedInput-root {
+  background: #fff;
+  font-size: 14px;
+}
+.fields .MuiInputLabel-root {
+  font-size: 14px;
+}
+.fields .MuiOutlinedInput-notchedOutline {
+  border-color: #dddfe3;
+}
+.fields .MuiFormHelperText-root {
+  margin-left: 0;
+}
+.eye-icon {
+  display: flex;
+}
+.form-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 14px 0 24px;
+  gap: 8px;
+}
+.form-options .MuiFormControlLabel-label,
+.terms-row .MuiFormControlLabel-label {
+  font-size: 12px;
+  color: #64676e;
+}
+.text-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #cb2533;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+  font-weight: 600;
+}
+.text-button:hover {
+  text-decoration: underline;
+}
+.form-alert {
+  margin: 16px 0;
+}
+.switch-form {
+  font-size: 12px;
+  color: #777a82;
+  text-align: center;
+  margin: 27px 0;
+}
+.switch-form a {
+  color: #cb2533;
+  font-weight: 650;
+  margin-left: 4px;
+}
+.switch-form a:hover {
+  text-decoration: underline;
+}
+.demo-note {
+  border-top: 1px solid #e9e9ec;
+  padding-top: 22px;
+  text-align: center;
+  color: #999ba1;
+  font-size: 10px;
+}
+.form-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  font-size: 10px;
+  color: #999ba1;
+}
+.form-footer span:last-child {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.mobile-brand {
+  display: none;
+}
+.signup-panel .form-content {
+  max-width: 460px;
+  padding: 36px 0;
+}
+.signup-panel .form-symbol {
+  margin-bottom: 18px;
+}
+.signup-panel .form-description {
+  margin-bottom: 26px;
+}
+.signup-panel .fields {
+  gap: 18px;
+}
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.terms-row {
+  display: flex;
+  align-items: center;
+  margin: 11px 0 18px;
+  flex-wrap: wrap;
+}
+.terms-row .MuiFormControlLabel-root {
+  margin-right: 5px;
+}
+.terms-row + .MuiFormHelperText-root {
+  margin: -12px 0 18px;
+}
+.admin-submit {
+  margin-top: 28px !important;
+}
+.access-note {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: #81848b;
+  border: 1px solid #e6e6e9;
+  border-radius: 8px;
+  padding: 14px;
+  margin: 25px 0;
+}
+.access-note p {
+  font-size: 11px;
+  line-height: 1.7;
+  margin: 0;
+}
+.access-note svg {
+  flex-shrink: 0;
+}
+.placeholder-page {
+  min-height: 100dvh;
+  padding: 28px 6%;
+  background: #fafafa;
+}
+.placeholder-page header {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: center;
+}
+.placeholder-page main {
+  max-width: 550px;
+  margin: 18vh auto;
+  text-align: center;
+}
+.placeholder-page main .form-symbol {
+  margin: 0 auto 25px;
+}
+.placeholder-page h1 {
+  font-size: 36px;
+  letter-spacing: -1px;
+}
+.placeholder-page main p {
+  color: #7a7d84;
+}
+@media (min-width: 1600px) {
+  .brand-panel {
+    padding: 60px 80px;
+  }
+  .form-panel {
+    padding: 52px 80px 28px;
+  }
+}
+@media (max-width: 1100px) {
+  .brand-panel {
+    padding: 40px 32px;
+  }
+  .form-panel {
+    padding: 36px 32px 24px;
+  }
+  .brand-story h1 {
+    font-size: 48px;
+  }
+  .edition {
+    display: none;
+  }
+  .field-row {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 760px) {
+  .auth-layout {
+    display: block;
+  }
+  .brand-panel {
+    display: none;
+  }
+  .form-panel {
+    min-height: 100dvh;
+    padding: 26px 24px 20px;
+  }
+  .mobile-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 0 28px;
+  }
+  .mobile-brand .brand {
+    width: 240px;
+  }
+  .mobile-brand .brand:has(.admin-label) {
+    width: 290px;
+  }
+  .portal-nav {
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e9e9ec;
+  }
+  .form-content {
+    padding: 40px 0;
+    max-width: 420px;
+  }
+  .form-content h2 {
+    font-size: 30px;
+  }
+  .form-description {
+    margin-bottom: 28px;
+  }
+  .form-footer {
+    margin-top: 20px;
+    font-size: 9px;
+  }
+  .signup-panel .form-content {
+    max-width: 420px;
+  }
+  .placeholder-page {
+    padding: 24px 20px;
+  }
+  .placeholder-page header .brand {
+    width: 180px;
+  }
+  .placeholder-page header .brand:has(.admin-label) {
+    width: 220px;
+  }
+  .placeholder-page header .brand img {
+    max-width: 160px;
+  }
+  .placeholder-page header .admin-label {
+    font-size: 8px;
+  }
+  .placeholder-page header .MuiButton-root {
+    min-width: 70px;
+  }
+  .placeholder-page h1 {
+    font-size: 30px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
