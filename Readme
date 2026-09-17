@@ -1,0 +1,51 @@
+                                                                                                                            ---                                                                                                                     
+  Trading Backend - Complete                                                                                                                                                                                                                        
+  42 files created, dependencies installed. To start:                                                                        
+  cd D:/Project/tradingBackend                                                                                            
+  cp .env.example .env
+  # Edit .env: set MONGODB_URI and AngelOne credentials
+  npm run dev
+
+  ---
+  Project Structure
+
+  ┌─────────────┬──────────────────────────────────────────────────────────────────────┐
+  │    Layer    │                                Files                                 │
+  ├─────────────┼──────────────────────────────────────────────────────────────────────┤
+  │ Models      │ User, Stock, Order, Position, Watchlist, Payment, DummyLeaderboard   │
+  ├─────────────┼──────────────────────────────────────────────────────────────────────┤
+  │ Services    │ angelone.service, cashfree.service, trade.service, websocket.service │
+  ├─────────────┼──────────────────────────────────────────────────────────────────────┤
+  │ Controllers │ auth, admin, stock, order, watchlist, payment, leaderboard           │
+  ├─────────────┼──────────────────────────────────────────────────────────────────────┤
+  │ Routes      │ 8 route files with full Swagger JSDoc annotations                    │
+  ├─────────────┼──────────────────────────────────────────────────────────────────────┤
+  │ Docs        │ Swagger UI at /api-docs + Postman collection (40+ requests)          │
+  └─────────────┴──────────────────────────────────────────────────────────────────────┘
+
+  ---
+  Key API Endpoints
+
+  Auth: POST /api/auth/register → POST /api/auth/login
+
+  Orders: POST /api/orders (place buy/sell) → GET /api/orders/positions (live P&L)
+
+  Payment: POST /api/payments/create → Cashfree link → POST /api/payments/webhook
+
+  Admin: /api/admin/stocks (enable stocks) · /api/admin/users · /api/admin/leaderboard/dummy
+
+  ---
+  Business Logic Highlights
+
+  - 48h free trial → auto-set on registration
+  - ₹500 payment → ₹99 platform fee + ₹401 feeBalance + ₹5cr dummyBalance
+  - ₹2 deducted per trade from feeBalance via MongoDB transaction
+  - Live prices via AngelOne SmartWebSocket → Socket.IO rooms (stock:{token})
+  - Default admin auto-seeded: admin@trading.com / Admin@123
+
+  ---
+  Next Steps
+
+  1. Set your ANGELONE_CLIENT_ID, ANGELONE_PASSWORD, ANGELONE_TOTP_SECRET in .env
+  2. Call POST /api/admin/angelone/init-session to activate live price feeds
+  3. Import postman/TradingApp.postman_collection.json into Postman to test all endpoints

@@ -1,0 +1,1208 @@
+{
+  "info": {
+    "_postman_id": "trading-app-collection-v1",
+    "name": "Trading App API",
+    "description": "Paper Trading Application API Collection\n\n## Setup\n1. Set `baseUrl` environment variable to `http://localhost:5000/api`\n2. Register or login to get a token\n3. Token is automatically saved to `authToken` variable\n\n## Business Logic\n- Register → 48 hours free trial\n- After trial → Pay ₹500 to continue\n- Payment: ₹99 platform fee + ₹401 credited to feeBalance\n- After payment: ₹5 crore dummyBalance for trading\n- Each trade: ₹2 deducted from feeBalance",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "stockId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "orderId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "paymentOrderId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Authentication endpoints - register, login, profile management",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const data = pm.response.json();",
+                  "    pm.collectionVariables.set('authToken', data.data.tokens.accessToken);",
+                  "    pm.collectionVariables.set('refreshToken', data.data.tokens.refreshToken);",
+                  "    pm.collectionVariables.set('userId', data.data.user.id);",
+                  "    pm.test('Registration successful', () => pm.expect(data.success).to.be.true);",
+                  "    pm.test('Got access token', () => pm.expect(data.data.tokens.accessToken).to.be.a('string'));",
+                  "    pm.test('Trial period set', () => pm.expect(data.data.user.trialEndDate).to.be.a('string'));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"password123\",\n  \"phone\": \"9876543210\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Register a new user. Gets 48-hour free trial automatically."
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json();",
+                  "    pm.collectionVariables.set('authToken', data.data.tokens.accessToken);",
+                  "    pm.collectionVariables.set('refreshToken', data.data.tokens.refreshToken);",
+                  "    pm.collectionVariables.set('userId', data.data.user.id);",
+                  "    pm.test('Login successful', () => pm.expect(data.success).to.be.true);",
+                  "    pm.test('Got access token', () => pm.expect(data.data.tokens.accessToken).to.be.a('string'));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Login and get JWT access token and refresh token."
+          }
+        },
+        {
+          "name": "Login as Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json();",
+                  "    pm.collectionVariables.set('adminToken', data.data.tokens.accessToken);",
+                  "    pm.test('Admin login successful', () => pm.expect(data.success).to.be.true);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@trading.com\",\n  \"password\": \"Admin@123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Login as admin. Default credentials: admin@trading.com / Admin@123"
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json();",
+                  "    pm.collectionVariables.set('authToken', data.data.tokens.accessToken);",
+                  "    pm.collectionVariables.set('refreshToken', data.data.tokens.refreshToken);",
+                  "    pm.test('Token refreshed', () => pm.expect(data.success).to.be.true);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "refresh"]
+            }
+          }
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "profile"]
+            },
+            "description": "Get current user's full profile including balances and trade stats."
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Updated\",\n  \"phone\": \"9876543211\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "profile"]
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"oldPassword\": \"password123\",\n  \"newPassword\": \"newpassword456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/change-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "change-password"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Dashboard",
+      "description": "Admin dashboard and overview",
+      "item": [
+        {
+          "name": "Get Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/dashboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "dashboard"]
+            },
+            "description": "Get admin dashboard with total users, revenue, recent orders, WebSocket status."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Stocks",
+      "description": "Admin stock management",
+      "item": [
+        {
+          "name": "Get All Stocks (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/stocks?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "stocks"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "exchange", "value": "NSE", "disabled": true },
+                { "key": "search", "value": "RELIANCE", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add Stock",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const data = pm.response.json();",
+                  "    pm.collectionVariables.set('stockId', data.data._id);",
+                  "    pm.test('Stock added', () => pm.expect(data.success).to.be.true);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"symbol\": \"RELIANCE\",\n  \"token\": \"2885\",\n  \"exchange\": \"NSE\",\n  \"name\": \"Reliance Industries Ltd\",\n  \"exchangeType\": 1,\n  \"high52\": 3050.00,\n  \"low52\": 2220.00\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/stocks",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "stocks"]
+            }
+          }
+        },
+        {
+          "name": "Add Stock - TCS",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"symbol\": \"TCS\",\n  \"token\": \"11536\",\n  \"exchange\": \"NSE\",\n  \"name\": \"Tata Consultancy Services Ltd\",\n  \"exchangeType\": 1,\n  \"high52\": 4450.00,\n  \"low52\": 3400.00\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/stocks",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "stocks"]
+            }
+          }
+        },
+        {
+          "name": "Update Stock",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Reliance Industries Limited\",\n  \"high52\": 3100.00,\n  \"low52\": 2200.00\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/stocks/{{stockId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "stocks", "{{stockId}}"]
+            }
+          }
+        },
+        {
+          "name": "Enable Stock (Toggle Active)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/stocks/{{stockId}}/toggle",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "stocks", "{{stockId}}", "toggle"]
+            },
+            "description": "Toggle stock active status. Enabled stocks appear in user's stock list."
+          }
+        },
+        {
+          "name": "Sync Stock Prices",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/stocks/sync-prices",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "stocks", "sync-prices"]
+            },
+            "description": "Sync live prices from AngelOne API for all active stocks."
+          }
+        },
+        {
+          "name": "Delete Stock",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/stocks/{{stockId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "stocks", "{{stockId}}"]
+            }
+          }
+        },
+        {
+          "name": "Initialize AngelOne Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clientId\": \"YOUR_CLIENT_ID\",\n  \"password\": \"YOUR_PASSWORD\",\n  \"totp\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/angelone/session",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "angelone", "session"]
+            },
+            "description": "Initialize AngelOne SmartAPI session. Required for live prices and WebSocket."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Users",
+      "description": "Admin user management",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "search", "value": "", "disabled": true },
+                { "key": "filter", "value": "premium", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get User Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users", "{{userId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get User Trades",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/{{userId}}/trades?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users", "{{userId}}", "trades"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get User P&L",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/{{userId}}/pnl",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users", "{{userId}}", "pnl"]
+            }
+          }
+        },
+        {
+          "name": "Toggle User Active",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/{{userId}}/toggle-active",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users", "{{userId}}", "toggle-active"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Leaderboard",
+      "description": "Admin leaderboard management (add/edit dummy entries)",
+      "item": [
+        {
+          "name": "Get All Dummy Entries",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/leaderboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "leaderboard"]
+            }
+          }
+        },
+        {
+          "name": "Add Dummy Leaderboard Entry",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const data = pm.response.json();",
+                  "    pm.environment.set('dummyLeaderboardId', data.data._id);",
+                  "    pm.test('Dummy entry added', () => pm.expect(data.success).to.be.true);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Rahul Sharma\",\n  \"profilePic\": \"https://example.com/avatar1.jpg\",\n  \"totalPnl\": 2500000,\n  \"totalTrades\": 245,\n  \"winRate\": 72.5,\n  \"winAmount\": 3200000,\n  \"lossAmount\": 700000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/leaderboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "leaderboard"]
+            }
+          }
+        },
+        {
+          "name": "Add Dummy Entry - Priya Patel",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Priya Patel\",\n  \"totalPnl\": 1800000,\n  \"totalTrades\": 187,\n  \"winRate\": 68.2,\n  \"winAmount\": 2100000,\n  \"lossAmount\": 300000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/leaderboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "leaderboard"]
+            }
+          }
+        },
+        {
+          "name": "Update Dummy Entry",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"totalPnl\": 2700000,\n  \"totalTrades\": 260,\n  \"winRate\": 74.0,\n  \"isVisible\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/leaderboard/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "leaderboard", ":id"],
+              "variable": [{ "key": "id", "value": "DUMMY_ENTRY_ID_HERE" }]
+            }
+          }
+        },
+        {
+          "name": "Delete Dummy Entry",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/leaderboard/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "leaderboard", ":id"],
+              "variable": [{ "key": "id", "value": "DUMMY_ENTRY_ID_HERE" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Stocks",
+      "description": "Public stock market data (requires auth)",
+      "item": [
+        {
+          "name": "Get Active Stocks",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/stocks?page=1&limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["stocks"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "50" },
+                { "key": "exchange", "value": "NSE", "disabled": true },
+                { "key": "search", "value": "RELIANCE", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search Stocks",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/stocks/search?q=reliance",
+              "host": ["{{baseUrl}}"],
+              "path": ["stocks", "search"],
+              "query": [
+                { "key": "q", "value": "reliance" },
+                { "key": "exchange", "value": "NSE", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Stock by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/stocks/{{stockId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["stocks", "{{stockId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Stock by Symbol",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/stocks/symbol/RELIANCE",
+              "host": ["{{baseUrl}}"],
+              "path": ["stocks", "symbol", "RELIANCE"]
+            }
+          }
+        },
+        {
+          "name": "Get Stock LTP",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/stocks/{{stockId}}/ltp",
+              "host": ["{{baseUrl}}"],
+              "path": ["stocks", "{{stockId}}", "ltp"],
+              "query": [
+                { "key": "fresh", "value": "true", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Historical Data",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/stocks/{{stockId}}/historical?interval=ONE_DAY&fromdate=2024-01-01 09:15&todate=2024-01-31 15:30",
+              "host": ["{{baseUrl}}"],
+              "path": ["stocks", "{{stockId}}", "historical"],
+              "query": [
+                { "key": "interval", "value": "ONE_DAY" },
+                { "key": "fromdate", "value": "2024-01-01 09:15" },
+                { "key": "todate", "value": "2024-01-31 15:30" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search AngelOne Instruments",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"exchange\": \"NSE\",\n  \"searchscrip\": \"RELIANCE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/stocks/search-angelone",
+              "host": ["{{baseUrl}}"],
+              "path": ["stocks", "search-angelone"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "description": "Order placement and portfolio management",
+      "item": [
+        {
+          "name": "Place Buy Order (MARKET)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const data = pm.response.json();",
+                  "    pm.collectionVariables.set('orderId', data.data.order._id);",
+                  "    pm.test('Buy order placed', () => pm.expect(data.success).to.be.true);",
+                  "    pm.test('Order executed', () => pm.expect(data.data.order.status).to.equal('EXECUTED'));",
+                  "    console.log('New balance:', data.data.newBalance);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stockId\": \"{{stockId}}\",\n  \"orderType\": \"BUY\",\n  \"quantity\": 10,\n  \"priceType\": \"MARKET\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders/buy",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "buy"]
+            },
+            "description": "Place a market buy order. Uses current LTP as execution price."
+          }
+        },
+        {
+          "name": "Place Buy Order (LIMIT)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stockId\": \"{{stockId}}\",\n  \"orderType\": \"BUY\",\n  \"quantity\": 5,\n  \"priceType\": \"LIMIT\",\n  \"limitPrice\": 2400.00\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders/buy",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "buy"]
+            }
+          }
+        },
+        {
+          "name": "Place Sell Order (MARKET)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stockId\": \"{{stockId}}\",\n  \"orderType\": \"SELL\",\n  \"quantity\": 5,\n  \"priceType\": \"MARKET\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders/sell",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "sell"]
+            },
+            "description": "Sell shares from existing position. Calculates realized P&L."
+          }
+        },
+        {
+          "name": "Get Order History",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/orders?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "orderType", "value": "BUY", "disabled": true },
+                { "key": "status", "value": "EXECUTED", "disabled": true },
+                { "key": "symbol", "value": "RELIANCE", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Order by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/orders/{{orderId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "{{orderId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Open Positions",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/orders/positions/open",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "positions", "open"]
+            },
+            "description": "Get all open positions with live unrealized P&L."
+          }
+        },
+        {
+          "name": "Get Closed Positions",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/orders/positions/closed?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "positions", "closed"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Portfolio Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/orders/portfolio/summary",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "portfolio", "summary"]
+            },
+            "description": "Get portfolio overview: balance, invested amount, unrealized P&L."
+          }
+        },
+        {
+          "name": "Get P&L Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/orders/pnl/summary",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "pnl", "summary"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Watchlist",
+      "description": "User watchlist management",
+      "item": [
+        {
+          "name": "Get Watchlist",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/watchlist",
+              "host": ["{{baseUrl}}"],
+              "path": ["watchlist"]
+            }
+          }
+        },
+        {
+          "name": "Add to Watchlist",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stockId\": \"{{stockId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/watchlist/add",
+              "host": ["{{baseUrl}}"],
+              "path": ["watchlist", "add"]
+            }
+          }
+        },
+        {
+          "name": "Remove from Watchlist",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/watchlist/{{stockId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["watchlist", "{{stockId}}"]
+            }
+          }
+        },
+        {
+          "name": "Clear Watchlist",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/watchlist/clear",
+              "host": ["{{baseUrl}}"],
+              "path": ["watchlist", "clear"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "description": "₹500 subscription payment via Cashfree",
+      "item": [
+        {
+          "name": "Create Payment Order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const data = pm.response.json();",
+                  "    pm.collectionVariables.set('paymentOrderId', data.data.orderId);",
+                  "    pm.test('Payment order created', () => pm.expect(data.success).to.be.true);",
+                  "    console.log('Order ID:', data.data.orderId);",
+                  "    console.log('Payment Session ID:', data.data.paymentSessionId);",
+                  "    console.log('Breakdown:', JSON.stringify(data.data.breakdown));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payments/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments", "create"]
+            },
+            "description": "Create ₹500 Cashfree payment order. Returns payment session ID for frontend checkout.\n\nBreakdown:\n- Total: ₹500\n- Platform fee: ₹99\n- Credit to feeBalance: ₹401\n- dummyBalance on success: ₹5,00,00,000"
+          }
+        },
+        {
+          "name": "Verify Payment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test('Verification complete', () => pm.expect(data.success).to.be.true);",
+                  "    if (data.data.status === 'SUCCESS') {",
+                  "        console.log('Premium activated!');",
+                  "        console.log('Dummy Balance:', data.data.dummyBalance);",
+                  "        console.log('Fee Balance:', data.data.feeBalance);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payments/verify/{{paymentOrderId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments", "verify", "{{paymentOrderId}}"]
+            },
+            "description": "Verify payment status with Cashfree. If PAID, activates premium:\n- isPremium = true\n- dummyBalance = ₹5,00,00,000\n- feeBalance = ₹401"
+          }
+        },
+        {
+          "name": "Get Payment History",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payments/history?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments", "history"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Payment Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payments/{{paymentOrderId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments", "{{paymentOrderId}}"]
+            }
+          }
+        },
+        {
+          "name": "Payment Webhook (Cashfree Callback)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-webhook-signature", "value": "CASHFREE_GENERATED_SIGNATURE" },
+              { "key": "x-webhook-timestamp", "value": "1697000000" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"order\": {\n      \"order_id\": \"PAY_ABC123_1697000000\",\n      \"order_status\": \"PAID\",\n      \"order_amount\": 500\n    },\n    \"payment\": {\n      \"cf_payment_id\": \"123456789\",\n      \"payment_status\": \"SUCCESS\",\n      \"payment_amount\": 500\n    }\n  },\n  \"type\": \"PAYMENT_SUCCESS_WEBHOOK\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payments/webhook",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments", "webhook"]
+            },
+            "description": "Webhook endpoint called by Cashfree. Verifies HMAC signature and activates premium."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Leaderboard",
+      "description": "Trading leaderboard (public + private endpoints)",
+      "item": [
+        {
+          "name": "Get Leaderboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/leaderboard?limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["leaderboard"],
+              "query": [
+                { "key": "limit", "value": "50" }
+              ]
+            },
+            "description": "Get merged leaderboard of real users + dummy entries, sorted by totalPnl."
+          }
+        },
+        {
+          "name": "Get Leaderboard Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/leaderboard/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["leaderboard", "stats"]
+            },
+            "description": "Get overall trading statistics: total traders, top gainer, total profit generated."
+          }
+        },
+        {
+          "name": "Get User Public Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/leaderboard/user/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["leaderboard", "user", "{{userId}}"]
+            },
+            "description": "Get public profile of a user with their 50 most recent executed trades."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health & Info",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "API Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
