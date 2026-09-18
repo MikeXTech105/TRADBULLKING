@@ -5,6 +5,7 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  Drawer,
   IconButton,
   TextField,
   useMediaQuery,
@@ -245,46 +246,79 @@ export default function Trade() {
             BUY
           </Button>
         </div>
-        <Dialog
-          open={Boolean(sheet)}
-          onClose={() => setSheet(null)}
-          fullWidth
-          maxWidth="xs"
-          fullScreen={mobile}
-          className="order-sheet"
-        >
-          <DialogTitle>
-            <span>
-              {instrument.data?.symbol || "Paper order"}
-              <small
-                style={{
-                  display: "block",
-                  fontSize: 12,
-                  color: "var(--muted)",
-                }}
+        {mobile ? (
+          <Drawer
+            anchor="bottom"
+            open={Boolean(sheet)}
+            onClose={() => setSheet(null)}
+            className="order-sheet"
+            slotProps={{ paper: { className: "mobile-bottom-sheet" } }}
+          >
+            <div className="sheet-handle" aria-hidden="true" />
+            <div className="sheet-header">
+              <span>
+                {instrument.data?.symbol || "Paper order"}
+                <small>{formatINR(quote?.ltp ?? instrument.data?.ltp)}</small>
+              </span>
+              <IconButton
+                aria-label="Close order sheet"
+                onClick={() => setSheet(null)}
               >
-                {formatINR(quote?.ltp ?? instrument.data?.ltp)}
-              </small>
-            </span>
-            <IconButton
-              aria-label="Close order sheet"
-              onClick={() => setSheet(null)}
-              sx={{ float: "right" }}
-            >
-              <X size={17} />
-            </IconButton>
-          </DialogTitle>
-          <DialogContent>
-            {instrument.data && sheet && (
-              <OrderTicket
-                key={`${stockId}-${sheet}`}
-                stock={instrument.data}
-                quote={quote}
-                initialSide={sheet}
-              />
-            )}
-          </DialogContent>
-        </Dialog>
+                <X size={17} />
+              </IconButton>
+            </div>
+            <div className="sheet-body">
+              {instrument.data && sheet && (
+                <OrderTicket
+                  key={`${stockId}-${sheet}`}
+                  stock={instrument.data}
+                  quote={quote}
+                  initialSide={sheet}
+                />
+              )}
+            </div>
+          </Drawer>
+        ) : (
+          <Dialog
+            open={Boolean(sheet)}
+            onClose={() => setSheet(null)}
+            fullWidth
+            maxWidth="xs"
+            className="order-sheet"
+          >
+            <DialogTitle>
+              <span>
+                {instrument.data?.symbol || "Paper order"}
+                <small
+                  style={{
+                    display: "block",
+                    fontSize: 12,
+                    color: "var(--muted)",
+                  }}
+                >
+                  {formatINR(quote?.ltp ?? instrument.data?.ltp)}
+                </small>
+              </span>
+              <IconButton
+                aria-label="Close order sheet"
+                onClick={() => setSheet(null)}
+                sx={{ float: "right" }}
+              >
+                <X size={17} />
+              </IconButton>
+            </DialogTitle>
+            <DialogContent>
+              {instrument.data && sheet && (
+                <OrderTicket
+                  key={`${stockId}-${sheet}`}
+                  stock={instrument.data}
+                  quote={quote}
+                  initialSide={sheet}
+                />
+              )}
+            </DialogContent>
+          </Dialog>
+        )}
       </QueryState>
     </div>
   );
