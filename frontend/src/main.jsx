@@ -1,36 +1,26 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
-import { ThemeProvider, createTheme, CssBaseline } from "@mui/material";
+import { ThemeProvider, CssBaseline } from "@mui/material";
 import App from "./App";
+import { theme } from "./theme";
+import { cssVariables } from "./designTokens";
 import "./index.css";
+import { Provider } from "react-redux";
+import { store } from "./store/store";
 
-const theme = createTheme({
-  palette: {
-    primary: { main: "#d92332" },
-    background: { default: "#f7f7f8" },
-    text: { primary: "#17191d", secondary: "#74777e" },
-  },
-  typography: {
-    fontFamily: '"Inter", "Segoe UI", sans-serif',
-    button: { textTransform: "none", fontWeight: 650 },
-  },
-  shape: { borderRadius: 8 },
-  components: {
-    MuiButton: {
-      defaultProps: { disableElevation: true },
-      styleOverrides: { root: { minHeight: 48 } },
-    },
-    MuiTextField: { defaultProps: { fullWidth: true, variant: "outlined" } },
-  },
-});
+Object.entries(cssVariables).forEach(([key, value]) =>
+  document.documentElement.style.setProperty(key, value),
+);
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </ThemeProvider>
+    <Provider store={store}>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </ThemeProvider>
+    </Provider>
   </React.StrictMode>,
 );

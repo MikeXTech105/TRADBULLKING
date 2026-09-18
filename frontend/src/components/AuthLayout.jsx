@@ -49,18 +49,18 @@ export default function AuthLayout({
               </>
             ) : (
               <>
-                Your ambition.
+                Practice trading.
                 <br />
-                Our foundation.
+                Track performance.
                 <br />
-                <span>Rise higher.</span>
+                <span>Build confidence.</span>
               </>
             )}
           </h1>
           <p>
             {admin
               ? "A dedicated space for the people behind TRADBULLKING."
-              : "Every great journey begins with a clear focus. Take your next step with TRADBULLKING."}
+              : "Follow market prices, place paper orders, and review your portfolio in one workspace."}
           </p>
           <div className="brand-motto">
             TRADE SMARTER <span className="motto-divider">—</span> TRADE HIGHER
@@ -74,13 +74,6 @@ export default function AuthLayout({
               : "Built for your next chapter"}
           </span>
           <span className="edition">EST. 2026</span>
-        </div>
-        <div className="decor" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-          <span />
-          <span />
         </div>
       </aside>
       <section className={`form-panel ${signup ? "signup-panel" : ""}`}>

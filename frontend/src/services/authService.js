@@ -1,113 +1,94 @@
-// Development-only mock auth. Replace with backend authentication before production.
-// Passwords are never persisted; signup only validates and acknowledges the form.
-const credentials = {
-  user: {
-    email: "user@tradbullking.com",
-    password: "123456",
-    name: "Demo User",
-  },
-  admin: {
-    email: "admin@tradbullking.com",
-    password: "admin123",
-    name: "Administrator",
-  },
-};
-const keys = (role) => ({ token: `tbk_${role}_token`, profile: `tbk_${role}` });
-const pause = () => new Promise((resolve) => setTimeout(resolve, 350));
-export function validateLogin(values, admin = false) {
+import { publicApi, userApi, adminApi } from "./api.js";
+import { profile, tokens, unwrap } from "./adapters.js";
+import {
+  saveSession,
+  readSession,
+  updateSession,
+  clearSession,
+  validRole,
+} from "./session.js";
+export function validateLogin(values) {
   const errors = {};
-  const identifier = values.identifier.trim();
-  if (!identifier)
-    errors.identifier = admin
-      ? "Enter your admin email."
-      : "Enter your email or mobile number.";
-  else if (
-    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier) &&
-    (admin || !/^\+?\d{10,15}$/.test(identifier))
-  )
-    errors.identifier = admin
-      ? "Enter a valid email address."
-      : "Enter a valid email or 10–15 digit mobile number.";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim()))
+    errors.email = "Enter a valid email address.";
   if (!values.password) errors.password = "Enter your password.";
   return errors;
 }
 export function validateSignup(values) {
-  const errors = {};
+  const errors = validateLogin(values);
   if (!values.name.trim()) errors.name = "Enter your full name.";
-  if (!/^\+?\d{10,15}$/.test(values.mobile.trim()))
-    errors.mobile = "Enter a valid 10–15 digit mobile number.";
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim()))
-    errors.email = "Enter a valid email address.";
+  if (values.phone && !/^\+?[\d\s-]{10,17}$/.test(values.phone.trim()))
+    errors.phone = "Enter a valid mobile number.";
   if (values.password.length < 6)
     errors.password = "Use at least 6 characters.";
-  if (!values.confirmPassword)
-    errors.confirmPassword = "Confirm your password.";
-  else if (values.password !== values.confirmPassword)
+  if (values.password !== values.confirmPassword)
     errors.confirmPassword = "Passwords do not match.";
-  if (!values.terms)
-    errors.terms = "Accept the Terms & Conditions to continue.";
   return errors;
 }
-async function login(role, { identifier, password, remember = false }) {
-  await pause();
-  const expected = credentials[role];
-  if (
-    identifier.trim().toLowerCase() !== expected.email ||
-    password !== expected.password
-  )
-    throw new Error("Incorrect email or password. Please try again.");
-  const profile = { name: expected.name, email: expected.email, role };
-  const key = keys(role);
-  // Remembered users persist; other sessions expire after 12 hours.
-  const expiresAt =
-    role === "user" && remember ? null : Date.now() + 12 * 60 * 60 * 1000;
-  try {
-    localStorage.setItem(
-      key.profile,
-      JSON.stringify({ ...profile, expiresAt }),
-    );
-    localStorage.setItem(key.token, `mock-${role}-session`);
-  } catch {
-    logout(role);
+export async function getProfile(role = "user") {
+  const user = profile(
+    unwrap(await (role === "admin" ? adminApi : userApi).get("/auth/profile")),
+  );
+  if (!validRole(user, role)) {
+    clearSession(role);
     throw new Error(
-      "Session storage is unavailable. Enable browser storage and try again.",
+      role === "admin"
+        ? "Administrator access is required."
+        : "Please use the administrator portal for this account.",
     );
   }
-  return profile;
+  updateSession(role, { user });
+  return user;
 }
-function logout(role) {
-  const key = keys(role);
-  localStorage.removeItem(key.token);
-  localStorage.removeItem(key.profile);
-}
-function current(role) {
-  const key = keys(role);
+async function establish(role, data, persistent) {
+  saveSession(role, { ...tokens(data), user: profile(data.user) }, persistent);
   try {
-    if (localStorage.getItem(key.token) !== `mock-${role}-session`) return null;
-    const profile = JSON.parse(localStorage.getItem(key.profile));
-    if (
-      !profile ||
-      profile.role !== role ||
-      (profile.expiresAt && profile.expiresAt < Date.now())
-    ) {
-      logout(role);
-      return null;
-    }
-    return profile;
-  } catch {
-    return null;
+    return await getProfile(role);
+  } catch (error) {
+    clearSession(role);
+    throw error;
   }
+}
+async function login(role, values) {
+  const data = unwrap(
+    await publicApi.post("/auth/login", {
+      email: values.email.trim(),
+      password: values.password,
+    }),
+  );
+  return establish(role, data, values.remember);
 }
 export const loginUser = (values) => login("user", values);
 export const loginAdmin = (values) => login("admin", values);
 export async function signupUser(values) {
-  const errors = validateSignup(values);
-  if (Object.keys(errors).length)
-    throw new Error("Please correct the highlighted fields.");
-  await pause();
-  return { success: true };
+  const data = unwrap(
+    await publicApi.post("/auth/register", {
+      name: values.name.trim(),
+      email: values.email.trim(),
+      phone: values.phone.trim() || undefined,
+      password: values.password,
+    }),
+  );
+  if (data?.accessToken || data?.tokens?.accessToken)
+    return establish("user", data, false);
+  return loginUser(values);
 }
-export const logoutUser = () => logout("user");
-export const logoutAdmin = () => logout("admin");
-export const getCurrentUser = () => current("user");
-export const getCurrentAdmin = () => current("admin");
+export async function updateProfile(values, role = "user") {
+  await (role === "admin" ? adminApi : userApi).put("/auth/profile", {
+    name: values.name.trim(),
+    phone: values.phone.trim(),
+  });
+  return getProfile(role);
+}
+export async function changePassword(values, role = "user") {
+  return unwrap(
+    await (role === "admin" ? adminApi : userApi).post(
+      "/auth/change-password",
+      { oldPassword: values.oldPassword, newPassword: values.newPassword },
+    ),
+  );
+}
+export const logoutUser = () => clearSession("user");
+export const logoutAdmin = () => clearSession("admin");
+export const getCurrentUser = () => readSession("user")?.user;
+export const getCurrentAdmin = () => readSession("admin")?.user;

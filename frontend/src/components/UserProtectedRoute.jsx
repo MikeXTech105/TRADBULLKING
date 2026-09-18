@@ -1,5 +1,4 @@
-import { Navigate, Outlet } from "react-router-dom";
-import { getCurrentUser } from "../services/authService";
+import ProtectedRoute from "./ProtectedRoute";
 export default function UserProtectedRoute() {
-  return getCurrentUser() ? <Outlet /> : <Navigate to="/login" replace />;
+  return <ProtectedRoute role="user" />;
 }
