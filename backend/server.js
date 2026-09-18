@@ -5,6 +5,7 @@ const app = require('./app');
 const connectDB = require('./src/config/database');
 const logger = require('./src/utils/logger');
 const wsService = require('./src/services/websocket.service');
+const { startDailyScheduler } = require('./src/services/scheduler.service');
 const { seedAdmin } = require('./src/utils/seed');
 
 const PORT = process.env.PORT || 5000;
@@ -16,6 +17,9 @@ async function startServer() {
 
     // Seed admin user if not exists
     await seedAdmin();
+
+    // Start daily leaderboard snapshot & balance reset scheduler
+    startDailyScheduler();
 
     // Create HTTP server
     const server = http.createServer(app);

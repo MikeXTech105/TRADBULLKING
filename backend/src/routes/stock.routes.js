@@ -129,6 +129,39 @@ router.get('/symbol/:symbol', stockController.getStockBySymbol);
 
 /**
  * @swagger
+ * /stocks/{id}/candles:
+ *   get:
+ *     summary: Get OHLC candle data for a stock
+ *     tags: [Stocks]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: interval
+ *         schema:
+ *           type: string
+ *           enum: [ONE_MINUTE, THREE_MINUTE, FIVE_MINUTE, TEN_MINUTE, FIFTEEN_MINUTE, THIRTY_MINUTE, ONE_HOUR, ONE_DAY]
+ *           default: ONE_MINUTE
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 500
+ *     responses:
+ *       200:
+ *         description: OHLC candle data
+ *       404:
+ *         description: Stock not found
+ */
+router.get('/:id/candles', stockController.getCandles);
+
+/**
+ * @swagger
  * /stocks/{id}:
  *   get:
  *     summary: Get stock details by ID
