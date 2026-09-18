@@ -10,7 +10,7 @@ import {
   DialogContent,
   DialogActions,
 } from "@mui/material";
-import { LogOut, KeyRound } from "lucide-react";
+import { LogOut, KeyRound, Download, CheckCircle2 } from "lucide-react";
 import {
   getProfile,
   updateProfile,
@@ -22,6 +22,8 @@ import { errorMessage } from "../../services/api";
 import { PageHeader, StatCards } from "../../components/DataView";
 import { Notice, SlowNotice } from "../../components/Feedback";
 import PasswordField from "../../components/PasswordField";
+import InstallAppPrompt from "../../components/InstallAppPrompt";
+import { usePWAInstall } from "../../hooks/usePWAInstall";
 import { formatDate } from "../../utils/format";
 export default function Profile({ admin = false }) {
   const role = admin ? "admin" : "user";
@@ -42,6 +44,8 @@ export default function Profile({ admin = false }) {
     confirmPassword: "",
   });
   const [passwordError, setPasswordError] = useState("");
+  const [installOpen, setInstallOpen] = useState(false);
+  const pwa = usePWAInstall();
   useEffect(() => {
     setValues({ name: user?.name ?? "", phone: user?.phone ?? "" });
   }, [user?.name, user?.phone]);
@@ -250,6 +254,23 @@ export default function Profile({ admin = false }) {
           >
             Refresh account
           </Button>
+          {!admin && pwa.status !== "unsupported" && (
+            <Button
+              disabled={pwa.status === "installed"}
+              startIcon={
+                pwa.status === "installed" ? (
+                  <CheckCircle2 size={16} />
+                ) : (
+                  <Download size={16} />
+                )
+              }
+              onClick={() => setInstallOpen(true)}
+            >
+              {pwa.status === "installed"
+                ? "App Installed"
+                : "Install TRADBULLKING App"}
+            </Button>
+          )}
         </section>
       </div>
       <Dialog
@@ -317,6 +338,18 @@ export default function Profile({ admin = false }) {
           </DialogActions>
         </form>
       </Dialog>
+      {!admin && (
+        <InstallAppPrompt
+          open={installOpen}
+          variant={pwa.isIos ? "ios" : "android"}
+          onClose={() => setInstallOpen(false)}
+          onDismiss={() => setInstallOpen(false)}
+          onInstall={async () => {
+            await pwa.install();
+            setInstallOpen(false);
+          }}
+        />
+      )}
       <Notice notice={notice} onClose={() => setNotice(null)} />
     </>
   );

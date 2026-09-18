@@ -11,10 +11,7 @@ export function orderPayload({
     throw new Error("Select a valid instrument and order side.");
   if (!Number.isInteger(Number(quantity)) || Number(quantity) < 1)
     throw new Error("Quantity must be a positive whole number.");
-  if (
-    !["MARKET", "LIMIT"].includes(priceType) ||
-    (side === "SELL" && priceType !== "MARKET")
-  )
+  if (!["MARKET", "LIMIT"].includes(priceType))
     throw new Error("This order type is not supported.");
   if (
     priceType === "LIMIT" &&

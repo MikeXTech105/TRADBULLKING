@@ -1,4 +1,5 @@
 import { hasNumber } from "../utils/format.js";
+import { registerInstrument } from "./instrumentRegistry.js";
 export function unwrap(response) {
   const body = response.data;
   if (body?.success === false)
@@ -10,16 +11,18 @@ export function unwrap(response) {
       : { ...data, pagination: body.pagination }
     : data;
 }
-export const identify = (row) =>
-  row
-    ? {
-        ...row,
-        id: row.id ?? row._id,
-        ...(row.stockId && typeof row.stockId === "object"
-          ? { stock: row.stockId, stockId: row.stockId.id ?? row.stockId._id }
-          : {}),
-      }
-    : row;
+export const identify = (row) => {
+  if (!row) return row;
+  const id = row.id ?? row._id;
+  if (row.token) registerInstrument(id, row.token);
+  return {
+    ...row,
+    id,
+    ...(row.stockId && typeof row.stockId === "object"
+      ? { stock: row.stockId, stockId: row.stockId.id ?? row.stockId._id }
+      : {}),
+  };
+};
 export function collection(data, key) {
   const rows = Array.isArray(data) ? data : (data?.items ?? data?.[key]);
   if (!Array.isArray(rows))

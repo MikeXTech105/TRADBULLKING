@@ -96,7 +96,6 @@ export default function OrderTicket({
           type="button"
           onClick={() => {
             setSide("SELL");
-            setPriceType("MARKET");
             setSuccess("");
           }}
         >
@@ -128,7 +127,7 @@ export default function OrderTicket({
             onChange={(e) => setPriceType(e.target.value)}
           >
             <MenuItem value="MARKET">Market</MenuItem>
-            {side === "BUY" && <MenuItem value="LIMIT">Limit</MenuItem>}
+            <MenuItem value="LIMIT">Limit</MenuItem>
           </TextField>
           {priceType === "LIMIT" && (
             <TextField

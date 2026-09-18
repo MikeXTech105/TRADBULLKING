@@ -10,7 +10,7 @@ import {
   MenuItem,
   TextField,
 } from "@mui/material";
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus, RefreshCw, Search } from "lucide-react";
 import { useQuery, useDebounce } from "../../hooks/useQuery";
 import { adminService } from "../../services/adminService";
 import { errorMessage } from "../../services/api";
@@ -24,6 +24,129 @@ import {
 } from "../../components/DataView";
 import { QueryState, Notice } from "../../components/Feedback";
 import { formatINR } from "../../utils/format";
+const PROVIDER_EXCHANGES = ["NSE", "BSE", "NFO", "MCX", "CDS"];
+const PROVIDER_INSTRUMENT_TYPES = [
+  "EQ",
+  "FUTSTK",
+  "OPTSTK",
+  "FUTIDX",
+  "OPTIDX",
+  "AMXIDX",
+];
+function InstrumentPicker({ onPick, onClose }) {
+  const [search, setSearch] = useState("");
+  const q = useDebounce(search);
+  const [exchange, setExchange] = useState("NSE");
+  const [instrumenttype, setInstrumentType] = useState("EQ");
+  const [page, setPage] = useState(1);
+  const query = useQuery(
+    (signal) =>
+      adminService.instruments(
+        {
+          search: q || undefined,
+          exchange: exchange || undefined,
+          instrumenttype: instrumenttype || undefined,
+          page,
+          limit: 20,
+        },
+        signal,
+      ),
+    [q, exchange, instrumenttype, page],
+  );
+  return (
+    <Dialog open onClose={onClose} fullWidth maxWidth="sm">
+      <DialogTitle>Browse AngelOne instruments</DialogTitle>
+      <DialogContent>
+        <p className="subtle-label">
+          Pick a verified provider instrument to auto-fill the symbol,
+          token, exchange, and name below.
+        </p>
+        <div className="fields dialog-fields">
+          <TextField
+            label="Search instrument"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            slotProps={{
+              input: { startAdornment: <Search size={16} /> },
+            }}
+          />
+          <TextField
+            select
+            label="Exchange"
+            value={exchange}
+            onChange={(e) => {
+              setExchange(e.target.value);
+              setPage(1);
+            }}
+          >
+            {PROVIDER_EXCHANGES.map((x) => (
+              <MenuItem key={x} value={x}>
+                {x}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            select
+            label="Instrument type"
+            value={instrumenttype}
+            onChange={(e) => {
+              setInstrumentType(e.target.value);
+              setPage(1);
+            }}
+          >
+            {PROVIDER_INSTRUMENT_TYPES.map((x) => (
+              <MenuItem key={x} value={x}>
+                {x}
+              </MenuItem>
+            ))}
+          </TextField>
+        </div>
+        <QueryState
+          query={query}
+          empty={!query.data?.rows?.length}
+          emptyTitle="No provider instruments found"
+          emptyText="Try a different search term, exchange, or instrument type."
+        >
+          <ul className="provider-results">
+            {(query.data?.rows ?? []).map((r, i) => {
+              const symbol = r.tradingsymbol ?? r.symbol ?? r.name;
+              const token = r.symboltoken ?? r.token;
+              const exch = r.exch_seg ?? r.exchange ?? exchange;
+              return (
+                <li key={token ?? i}>
+                  <button
+                    type="button"
+                    className="provider-result-row"
+                    onClick={() =>
+                      onPick({
+                        symbol,
+                        token,
+                        exchange: exch,
+                        name: r.name ?? symbol,
+                      })
+                    }
+                  >
+                    <strong>{symbol ?? "Instrument"}</strong>
+                    <span>
+                      {exch} · {token ?? "—"}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </QueryState>
+        <Pagination page={page} onChange={setPage} data={query.data} />
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Close</Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
 function StockForm({ stock, onClose }) {
   const edit = Boolean(stock?.id);
   const lock = useRef(false);
@@ -39,6 +162,7 @@ function StockForm({ stock, onClose }) {
   const [errors, setErrors] = useState({});
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [picker, setPicker] = useState(false);
   const fields = edit
     ? ["name", "high52", "low52"]
     : ["symbol", "token", "exchange", "name", "exchangeType"];
@@ -94,6 +218,17 @@ function StockForm({ stock, onClose }) {
       <form onSubmit={submit} noValidate>
         <DialogTitle>{edit ? "Edit stock" : "Add stock"}</DialogTitle>
         <DialogContent>
+          {!edit && (
+            <Button
+              type="button"
+              variant="outlined"
+              startIcon={<Search size={16} />}
+              onClick={() => setPicker(true)}
+              sx={{ mb: 2 }}
+            >
+              Browse AngelOne catalogue
+            </Button>
+          )}
           <div className="fields dialog-fields">
             {fields.map((key) => (
               <TextField
@@ -146,6 +281,24 @@ function StockForm({ stock, onClose }) {
           </Button>
         </DialogActions>
       </form>
+      {picker && (
+        <InstrumentPicker
+          onClose={() => setPicker(false)}
+          onPick={(picked) => {
+            setValues((previous) => ({
+              ...previous,
+              symbol: picked.symbol ?? previous.symbol,
+              token: picked.token ?? previous.token,
+              exchange: ["NSE", "BSE", "NFO", "MCX"].includes(picked.exchange)
+                ? picked.exchange
+                : previous.exchange,
+              name: picked.name ?? previous.name,
+            }));
+            setErrors({});
+            setPicker(false);
+          }}
+        />
+      )}
     </Dialog>
   );
 }

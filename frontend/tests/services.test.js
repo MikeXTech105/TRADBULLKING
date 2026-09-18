@@ -317,7 +317,9 @@ test("orders validate positive integers and supported sides without inventing ma
         priceType: "MARKET",
       }),
     );
-  assert.throws(() =>
+  // SELL LIMIT is a documented backend capability (identical schema to BUY),
+  // so it must produce a valid payload rather than being rejected.
+  assert.deepEqual(
     orderPayload({
       stockId: "s",
       side: "SELL",
@@ -325,6 +327,13 @@ test("orders validate positive integers and supported sides without inventing ma
       priceType: "LIMIT",
       limitPrice: 1,
     }),
+    {
+      stockId: "s",
+      orderType: "SELL",
+      quantity: 1,
+      priceType: "LIMIT",
+      limitPrice: 1,
+    },
   );
 });
 test("service integration routes and request bodies match the published contract", async () => {

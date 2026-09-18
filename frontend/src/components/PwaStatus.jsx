@@ -25,7 +25,10 @@ function OfflineBanner() {
   return (
     <div className="offline-banner" role="alert">
       <WifiOff size={14} />
-      <span>No internet connection. Live market data is unavailable.</span>
+      <span>
+        No internet connection. TRADBULLKING requires an internet connection
+        for live trading data.
+      </span>
     </div>
   );
 }
@@ -43,9 +46,9 @@ function UpdateBanner() {
   if (!needRefresh) return null;
   return (
     <div className="pwa-update-banner" role="status">
-      <span>New version available</span>
+      <span>New TRADBULLKING update available</span>
       <button type="button" onClick={() => updateServiceWorker(true)}>
-        Refresh
+        Update
       </button>
       <button
         type="button"

@@ -1,6 +1,7 @@
 // Isolated contract fixtures for browser QA ONLY. This is never imported by the app.
 // Bind locally and point a separate Vite process here; production always uses the real API.
 import http from "node:http";
+import { Server as SocketIOServer } from "socket.io";
 const stock = {
   id: "qa-stock",
   symbol: "QA-INSTRUMENT",
@@ -233,6 +234,19 @@ const server = http.createServer(async (req, res) => {
     path === "/admin/angelone/session"
   )
     result = success({});
+  else if (path === "/admin/angelone/instruments")
+    result = list(
+      [
+        {
+          tradingsymbol: "QA-PROVIDER-EQ",
+          symboltoken: "9999",
+          exch_seg: url.searchParams.get("exchange") || "NSE",
+          name: "QA Provider Instrument",
+        },
+      ],
+      Number(url.searchParams.get("page") || 1),
+      Number(url.searchParams.get("limit") || 20),
+    );
   else if (path === "/admin/stocks" && req.method === "POST") {
     stocks.push({ ...body, id: `qa-added-${stocks.length}`, isActive: true });
     result = success(stocks.at(-1));
@@ -267,6 +281,30 @@ const server = http.createServer(async (req, res) => {
   res.writeHead(status, { "Content-Type": "application/json" });
   res.end(JSON.stringify(result));
 });
+// Deterministic Socket.IO fixture matching the documented contract
+// (subscribe:stocks / unsubscribe:stocks -> price:update). Echoes back the
+// SAME static fixture LTP already used above — never randomized — purely to
+// prove the subscribe -> event -> UI wiring, not to simulate market movement.
+const io = new SocketIOServer(server, { cors: { origin: "*" } });
+io.on("connection", (socket) => {
+  socket.on("subscribe:stocks", (tokens = []) => {
+    for (const token of tokens) {
+      if (token !== stock.token) continue;
+      socket.emit("price:update", {
+        token: stock.token,
+        ltp: stock.ltp,
+        change: stock.change ?? 1.32,
+        changePercent: stock.changePercent,
+        high: stock.high,
+        low: stock.low,
+        open: stock.open,
+        close: stock.close,
+      });
+    }
+  });
+});
 server.listen(3900, "127.0.0.1", () =>
-  console.log("Isolated QA fixture API on http://127.0.0.1:3900/api"),
+  console.log(
+    "Isolated QA fixture API + Socket.IO on http://127.0.0.1:3900/api",
+  ),
 );

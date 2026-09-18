@@ -12,6 +12,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "preview"],
       "port": 4173
+    },
+    {
+      "name": "qa",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "--mode", "qa", "--port", "3002", "--strictPort"],
+      "port": 3002
     }
   ]
 }
