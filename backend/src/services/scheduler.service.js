@@ -1,10 +1,29 @@
 const cron = require('node-cron');
+const fs = require('fs');
+const path = require('path');
 const User = require('../models/User');
 const Position = require('../models/Position');
 const DummyLeaderboard = require('../models/DummyLeaderboard');
 const LeaderboardHistory = require('../models/LeaderboardHistory');
 const logger = require('../utils/logger');
 const { DUMMY_BALANCE } = require('../utils/constants');
+
+const INSTRUMENTS_FILE = path.join(__dirname, '../../angelone_instruments.json');
+
+/**
+ * Fetch all instruments from AngelOne and save to local JSON cache file.
+ */
+const refreshInstrumentsCache = async () => {
+  try {
+    logger.info('Refreshing AngelOne instruments cache...');
+    const angeloneService = require('./angelone.service');
+    const instruments = await angeloneService.getAllInstruments();
+    fs.writeFileSync(INSTRUMENTS_FILE, JSON.stringify(instruments, null, 2), 'utf8');
+    logger.info(`AngelOne instruments cache updated: ${instruments.length} instruments saved`);
+  } catch (error) {
+    logger.error('refreshInstrumentsCache error:', error.message);
+  }
+};
 
 /**
  * Snapshot current leaderboard and save to history.
@@ -102,6 +121,14 @@ const resetPremiumUsers = async () => {
  * Runs at midnight (00:00) every day.
  */
 const startDailyScheduler = () => {
+  // Refresh AngelOne instruments cache every 24 hours at 6 AM
+  cron.schedule('0 6 * * *', async () => {
+    await refreshInstrumentsCache();
+  });
+
+  // Run once on startup so the cache is available immediately
+  refreshInstrumentsCache();
+
   cron.schedule('0 0 * * *', async () => {
     logger.info('=== Daily leaderboard & balance reset started ===');
     await snapshotLeaderboard();
