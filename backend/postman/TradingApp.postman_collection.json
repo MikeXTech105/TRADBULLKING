@@ -1,14 +1,19 @@
 {
   "info": {
-    "_postman_id": "trading-app-collection-v1",
-    "name": "Trading App API",
-    "description": "Paper Trading Application API Collection\n\n## Setup\n1. Set `baseUrl` environment variable to `http://localhost:5000/api`\n2. Register or login to get a token\n3. Token is automatically saved to `authToken` variable\n\n## Business Logic\n- Register → 48 hours free trial\n- After trial → Pay ₹500 to continue\n- Payment: ₹99 platform fee + ₹401 credited to feeBalance\n- After payment: ₹5 crore dummyBalance for trading\n- Each trade: ₹2 deducted from feeBalance",
+    "_postman_id": "trading-app-collection-v2",
+    "name": "TradBullKing API",
+    "description": "## TradBullKing — Paper Trading API Collection\n\n### Setup\n1. Set `baseUrl` variable → `http://localhost:5000/api`\n2. Register or login → `authToken` is auto-saved\n3. For admin endpoints, use `adminToken`\n\n### Balance Logic\n| Event | Balance |\n|-------|---------|\n| Register | ₹1 Crore (trial) |\n| Pay ₹500 | ₹5 Crore (premium) |\n| Daily reset (midnight) | Reset to 5Cr (premium only) |\n| Per trade | ₹2 from feeBalance |\n\n### Socket.IO — Real-Time\nUse the **Socket.IO** folder to test real-time events.\n\n**Server:** `http://localhost:5000`\n\n**Emit events:**\n- `subscribe:stocks` → `[\"2885\", \"11536\"]`\n- `unsubscribe:stocks` → `[\"2885\"]`\n- `subscribe:all` → no data\n\n**Listen events:**\n- `price:update` → `{ token, ltp, change, changePercent, high, low, open, close, volume }`\n- `candle:update` → `{ token, time, open, high, low, close, volume }`",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
       "key": "baseUrl",
       "value": "http://localhost:5000/api",
+      "type": "string"
+    },
+    {
+      "key": "socketUrl",
+      "value": "http://localhost:5000",
       "type": "string"
     },
     {
@@ -35,6 +40,12 @@
       "key": "stockId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "stockToken",
+      "value": "2885",
+      "type": "string",
+      "description": "AngelOne token number for a stock (e.g. 2885=RELIANCE, 11536=TCS)"
     },
     {
       "key": "orderId",
@@ -715,7 +726,26 @@
           }
         },
         {
-          "name": "Get Historical Data",
+          "name": "Get Candles (Chart Data)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/stocks/{{stockId}}/candles?interval=ONE_MINUTE&limit=390",
+              "host": ["{{baseUrl}}"],
+              "path": ["stocks", "{{stockId}}", "candles"],
+              "query": [
+                { "key": "interval", "value": "ONE_MINUTE", "description": "ONE_MINUTE | THREE_MINUTE | FIVE_MINUTE | TEN_MINUTE | FIFTEEN_MINUTE | THIRTY_MINUTE | ONE_HOUR | ONE_DAY" },
+                { "key": "limit", "value": "390", "description": "Max candles to return (used for MongoDB fallback only)" }
+              ]
+            },
+            "description": "Get OHLCV candlestick data for charting.\n\nPrimary: fetches from AngelOne historical API (requires active session).\nFallback: returns stored 1-min candles from MongoDB.\n\nDate range is auto-calculated per interval:\n- ONE_MINUTE → last 1 day\n- FIVE_MINUTE → last 5 days\n- FIFTEEN_MINUTE → last 10 days\n- ONE_HOUR → last 30 days\n- ONE_DAY → last 365 days\n\nResponse candles are formatted for lightweight-charts:\n`{ time (unix seconds), open, high, low, close, volume }`"
+          }
+        },
+        {
+          "name": "Get Historical Data (Manual Range)",
           "request": {
             "method": "GET",
             "header": [
@@ -727,10 +757,11 @@
               "path": ["stocks", "{{stockId}}", "historical"],
               "query": [
                 { "key": "interval", "value": "ONE_DAY" },
-                { "key": "fromdate", "value": "2024-01-01 09:15" },
-                { "key": "todate", "value": "2024-01-31 15:30" }
+                { "key": "fromdate", "value": "2024-01-01 09:15", "description": "IST time: YYYY-MM-DD HH:MM" },
+                { "key": "todate", "value": "2024-01-31 15:30", "description": "IST time: YYYY-MM-DD HH:MM" }
               ]
-            }
+            },
+            "description": "Fetch raw candle data from AngelOne with manual date range. Requires active AngelOne session.\nDates must be in IST (India Standard Time): `YYYY-MM-DD HH:MM`"
           }
         },
         {
@@ -1175,6 +1206,95 @@
       ]
     },
     {
+      "name": "Socket.IO — Real-Time",
+      "description": "## Socket.IO Real-Time Price Streaming\n\nThe backend runs a Socket.IO server at `http://localhost:5000`.\n\n### How to test in Postman\n1. Click **New** → **Socket.IO**\n2. Enter URL: `http://localhost:5000`\n3. Click **Connect**\n4. Use the **Events** tab to add listeners: `price:update`, `candle:update`\n5. Use **New Message** to emit events\n\n### Events Reference\n| Direction | Event | Payload |\n|-----------|-------|---------|\n| Emit | `subscribe:stocks` | `[\"2885\", \"11536\"]` |\n| Emit | `unsubscribe:stocks` | `[\"2885\"]` |\n| Emit | `subscribe:all` | _(no data)_ |\n| Listen | `price:update` | `{ token, ltp, change, changePercent, high, low, open, close, volume }` |\n| Listen | `candle:update` | `{ token, time, open, high, low, close, volume }` |\n| Listen | `subscribed:all` | `{ count }` |",
+      "item": [
+        {
+          "name": "Connect & Subscribe to RELIANCE",
+          "request": {
+            "method": "SOCKETIO",
+            "header": [],
+            "url": {
+              "raw": "{{socketUrl}}",
+              "host": ["{{socketUrl}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "[\"{{stockToken}}\"]"
+            }
+          },
+          "protocolProfileBehavior": {},
+          "description": "**How to use in Postman:**\n1. Open a new Socket.IO request tab\n2. Enter URL: `http://localhost:5000`\n3. Click **Connect**\n4. In **Events** tab, add listener: `price:update`\n5. In **Events** tab, add listener: `candle:update`\n6. Click **New Message**, enter event: `subscribe:stocks`\n7. Enter data: `[\"2885\"]` (RELIANCE token)\n8. Click **Send**\n\n**Expected `price:update` response:**\n```json\n{\n  \"token\": \"2885\",\n  \"ltp\": 2456.75,\n  \"change\": 12.5,\n  \"changePercent\": 0.51,\n  \"high\": 2470.0,\n  \"low\": 2440.0,\n  \"open\": 2444.0,\n  \"close\": 2453.3,\n  \"volume\": 1234567\n}\n```\n\n**Expected `candle:update` response:**\n```json\n{\n  \"token\": \"2885\",\n  \"time\": 1705298100,\n  \"open\": 2450.0,\n  \"high\": 2456.75,\n  \"low\": 2448.5,\n  \"close\": 2456.75,\n  \"volume\": 5432\n}\n```"
+        },
+        {
+          "name": "Connect & Subscribe to Multiple Stocks",
+          "request": {
+            "method": "SOCKETIO",
+            "header": [],
+            "url": {
+              "raw": "{{socketUrl}}",
+              "host": ["{{socketUrl}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "[\"2885\", \"11536\", \"1594\"]"
+            }
+          },
+          "protocolProfileBehavior": {},
+          "description": "Subscribe to multiple stocks at once.\n\n**Emit:** `subscribe:stocks`\n**Data:** `[\"2885\", \"11536\", \"1594\"]`\n\nCommon tokens:\n| Symbol | Token |\n|--------|-------|\n| RELIANCE | 2885 |\n| TCS | 11536 |\n| INFY | 1594 |\n| HDFC BANK | 1333 |\n| NIFTY 50 | 26000 |"
+        },
+        {
+          "name": "Subscribe to All Stocks",
+          "request": {
+            "method": "SOCKETIO",
+            "header": [],
+            "url": {
+              "raw": "{{socketUrl}}",
+              "host": ["{{socketUrl}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          },
+          "protocolProfileBehavior": {},
+          "description": "Subscribe to all active stocks in one go.\n\n**Emit:** `subscribe:all`\n**Data:** _(no data needed)_\n\n**Response event:** `subscribed:all`\n```json\n{ \"count\": 25 }\n```\nCount = number of tokens subscribed."
+        },
+        {
+          "name": "Unsubscribe from Stock",
+          "request": {
+            "method": "SOCKETIO",
+            "header": [],
+            "url": {
+              "raw": "{{socketUrl}}",
+              "host": ["{{socketUrl}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "[\"2885\"]"
+            }
+          },
+          "protocolProfileBehavior": {},
+          "description": "Stop receiving updates for a stock.\n\n**Emit:** `unsubscribe:stocks`\n**Data:** `[\"2885\"]`\n\nNo response event — connection just stops emitting for that token."
+        },
+        {
+          "name": "AngelOne WebSocket Status (REST)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/dashboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "dashboard"]
+            },
+            "description": "Check the AngelOne WebSocket connection status via the admin dashboard REST API.\n\nLook for `websocket` field in the response which shows:\n- `isConnected`: true/false\n- `subscribedTokensCount`: number of active subscriptions\n- `reconnectAttempts`: reconnection attempts"
+          }
+        }
+      ]
+    },
+    {
       "name": "Health & Info",
       "item": [
         {
@@ -1189,6 +1309,36 @@
               "port": "5000",
               "path": ["health"]
             }
+          }
+        },
+        {
+          "name": "API Docs (Swagger)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/api-docs",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api-docs"]
+            },
+            "description": "Open Swagger UI — interactive API documentation with all endpoints, schemas, and WebSocket event reference."
+          }
+        },
+        {
+          "name": "Swagger JSON Spec",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/api-docs.json",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api-docs.json"]
+            },
+            "description": "Download the raw OpenAPI 3.0 JSON spec. Import into Postman or any API tool."
           }
         },
         {

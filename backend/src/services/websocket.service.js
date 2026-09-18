@@ -17,6 +17,8 @@ class AngelOneWebSocketService {
     this.isConnected = false;
     this.pendingBatchUpdates = new Map(); // token -> stockData, for batch DB updates
     this.batchUpdateInterval = null;
+    this.currentCandles = new Map(); // token -> { timestamp (ms), open, high, low, close, volume, symbol, exchange }
+    this.completedCandles = []; // completed 1-min candles waiting to be saved
   }
 
   /**
@@ -264,6 +266,8 @@ class AngelOneWebSocketService {
       if (this.io) {
         this.io.to(`stock:${token}`).emit('price:update', stockData);
       }
+
+      this.buildCandle(token, stockData);
     }
   }
 
@@ -396,6 +400,91 @@ class AngelOneWebSocketService {
       } catch (error) {
         logger.error('Error flushing batch stock updates:', error.message);
       }
+    }
+
+    // Flush completed candles to MongoDB
+    if (this.completedCandles.length > 0) {
+      const toSave = [...this.completedCandles];
+      this.completedCandles = [];
+      setImmediate(() => this.saveCompletedCandles(toSave));
+    }
+  }
+
+  /**
+   * Build or update the current 1-minute candle for a token
+   * @param {string} token
+   * @param {Object} stockData
+   */
+  buildCandle(token, stockData) {
+    const now = Date.now();
+    const candleStart = now - (now % 60000); // floor to current minute
+
+    const existing = this.currentCandles.get(token);
+
+    if (!existing || existing.timestamp !== candleStart) {
+      if (existing) {
+        this.completedCandles.push({ ...existing });
+      }
+      this.currentCandles.set(token, {
+        token,
+        symbol: stockData.symbol || token,
+        exchange: stockData.exchange || 'NSE',
+        timestamp: candleStart,
+        open: stockData.ltp,
+        high: stockData.ltp,
+        low: stockData.ltp,
+        close: stockData.ltp,
+        volume: stockData.volume || 0,
+      });
+    } else {
+      existing.high = Math.max(existing.high, stockData.ltp);
+      existing.low = Math.min(existing.low, stockData.ltp);
+      existing.close = stockData.ltp;
+      existing.volume += stockData.volume || 0;
+    }
+
+    const candle = this.currentCandles.get(token);
+    if (this.io) {
+      this.io.to(`stock:${token}`).emit('candle:update', {
+        token,
+        time: Math.floor(candle.timestamp / 1000),
+        open: candle.open,
+        high: candle.high,
+        low: candle.low,
+        close: candle.close,
+        volume: candle.volume,
+      });
+    }
+  }
+
+  /**
+   * Persist completed candles to MongoDB via bulkWrite upsert
+   * @param {Array} candles
+   */
+  async saveCompletedCandles(candles) {
+    try {
+      const StockCandleModel = require('../models/StockCandle');
+      const bulkOps = candles.map((c) => ({
+        updateOne: {
+          filter: { token: c.token, interval: '1min', timestamp: new Date(c.timestamp) },
+          update: {
+            $set: {
+              symbol: c.symbol,
+              exchange: c.exchange,
+              open: c.open,
+              high: c.high,
+              low: c.low,
+              close: c.close,
+              volume: c.volume,
+            },
+          },
+          upsert: true,
+        },
+      }));
+      await StockCandleModel.bulkWrite(bulkOps, { ordered: false });
+      logger.debug(`Saved ${candles.length} completed candles to MongoDB`);
+    } catch (err) {
+      logger.error('saveCompletedCandles error:', err.message);
     }
   }
 

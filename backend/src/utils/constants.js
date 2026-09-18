@@ -8,7 +8,8 @@ module.exports = {
   WS_EXCHANGE_TYPE: { NSE_CM: 1, NSE_FO: 2, BSE_CM: 3, BSE_FO: 4, MCX_FO: 5 },
   WS_SUBSCRIPTION_MODE: { LTP: 1, QUOTE: 2, SNAP_QUOTE: 3 },
   WS_ACTION: { SUBSCRIBE: 1, UNSUBSCRIBE: 0 },
-  DUMMY_BALANCE: 50000000,
+  INITIAL_BALANCE: 10000000,   // 1 crore — given on registration (trial)
+  DUMMY_BALANCE: 50000000,    // 5 crore — given after ₹500 payment & reset daily
   PAYMENT_AMOUNT: 500,
   PLATFORM_FEE: 99,
   CREDIT_AMOUNT: 401,

@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { successResponse, errorResponse } = require('../utils/response');
 const logger = require('../utils/logger');
-const { TRIAL_HOURS } = require('../utils/constants');
+const { TRIAL_HOURS, INITIAL_BALANCE } = require('../utils/constants');
 
 /**
  * Generate JWT access token
@@ -49,6 +49,7 @@ const register = async (req, res) => {
       phone: phone || undefined,
       role: 'user',
       trialEndDate: new Date(Date.now() + TRIAL_HOURS * 60 * 60 * 1000),
+      dummyBalance: INITIAL_BALANCE, // 1 crore on registration
     });
 
     await user.save();
