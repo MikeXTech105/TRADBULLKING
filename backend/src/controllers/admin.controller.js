@@ -1,3 +1,5 @@
+const fs = require('fs');
+const path = require('path');
 const User = require('../models/User');
 const Stock = require('../models/Stock');
 const Order = require('../models/Order');
@@ -478,11 +480,23 @@ const initAngelOneSession = async (req, res) => {
  */
 const getAngelOneInstruments = async (req, res) => {
   try {
-    const { search, exchange, instrumenttype, page = 1, limit = 50 } = req.query;
-
-    const allInstruments = await angeloneService.getAllInstruments();
-
+    const { search, exchange, instrumenttype, type, page = 1, limit = 50 } = req.query;
+    console.log('getAllInstruments', req.query);
+    const instrumentsFile = path.join(__dirname, '../../angelone_instruments.json');
+    if (!fs.existsSync(instrumentsFile)) {
+      return errorResponse(res, 'Instruments cache not ready yet. Please try again shortly.', 503);
+    }
+    const allInstruments = JSON.parse(fs.readFileSync(instrumentsFile, 'utf8'));
     let filtered = allInstruments;
+
+    // Filter only equity stocks: NSE/BSE instruments with empty instrumenttype
+    if (type === 'stock') {
+      filtered = filtered.filter(
+        (i) =>
+          ['NSE', 'BSE'].includes(i.exch_seg?.toUpperCase()) &&
+          i.instrumenttype === '' && i.is_cas_enabled === true
+      );
+    }
 
     if (exchange) {
       filtered = filtered.filter(
