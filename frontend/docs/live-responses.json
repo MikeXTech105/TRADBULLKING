@@ -1,0 +1,242 @@
+{
+  "POST /auth/register": {
+    "status": 201,
+    "body": {
+      "success": true,
+      "message": "Registration successful! You have 48 hours of free trial.",
+      "data": {
+        "user": {
+          "id": "6aac22aa05dffe94406a8e14",
+          "name": "Frontend QA",
+          "email": "frontend.qa.20260917.01@example.com",
+          "role": "user",
+          "isPremium": false,
+          "trialEndDate": "2026-09-19T17:26:02.145Z",
+          "dummyBalance": 0,
+          "feeBalance": 0,
+          "totalPnl": 0,
+          "totalTrades": 0
+        },
+        "tokens": "[REDACTED]"
+      }
+    }
+  },
+  "POST /auth/login": {
+    "status": 200,
+    "body": {
+      "success": true,
+      "message": "Login successful",
+      "data": {
+        "user": {
+          "id": "6aac22aa05dffe94406a8e14",
+          "name": "Frontend QA",
+          "email": "frontend.qa.20260917.01@example.com",
+          "role": "user",
+          "isPremium": false,
+          "trialEndDate": "2026-09-19T17:26:02.145Z",
+          "isTrialActive": true,
+          "canTrade": true,
+          "dummyBalance": 0,
+          "feeBalance": 0,
+          "totalPnl": 0,
+          "totalTrades": 0,
+          "profilePic": null
+        },
+        "tokens": "[REDACTED]"
+      }
+    }
+  },
+  "GET /auth/profile": {
+    "status": 200,
+    "body": {
+      "success": true,
+      "message": "Profile fetched successfully",
+      "data": {
+        "id": "6aac22aa05dffe94406a8e14",
+        "name": "Frontend QA",
+        "email": "frontend.qa.20260917.01@example.com",
+        "role": "user",
+        "isPremium": false,
+        "isActive": true,
+        "trialEndDate": "2026-09-19T17:26:02.145Z",
+        "isTrialActive": true,
+        "canTrade": true,
+        "dummyBalance": 0,
+        "feeBalance": 0,
+        "totalPnl": 0,
+        "totalTrades": 0,
+        "profilePic": null,
+        "lastLogin": "2026-09-17T17:26:07.410Z",
+        "createdAt": "2026-09-17T17:26:02.151Z"
+      }
+    }
+  },
+  "GET /stocks?limit=5": {
+    "status": 200,
+    "body": {
+      "success": true,
+      "message": "Stocks fetched successfully",
+      "data": [],
+      "pagination": {
+        "total": 0,
+        "page": 1,
+        "limit": 5,
+        "pages": 0
+      }
+    }
+  },
+  "GET /stocks/search?q=RELIANCE": {
+    "status": 200,
+    "body": {
+      "success": true,
+      "message": "Search results",
+      "data": []
+    }
+  },
+  "GET /watchlist": {
+    "status": 200,
+    "body": {
+      "success": true,
+      "message": "Watchlist fetched successfully",
+      "data": {
+        "watchlistId": "6aac22b205dffe94406a8e22",
+        "stocks": [],
+        "count": 0
+      }
+    }
+  },
+  "GET /orders?limit=5": {
+    "status": 200,
+    "body": {
+      "success": true,
+      "message": "Order history fetched",
+      "data": [],
+      "pagination": {
+        "total": 0,
+        "page": 1,
+        "limit": 5,
+        "pages": 0
+      }
+    }
+  },
+  "GET /orders/positions/open": {
+    "status": 200,
+    "body": {
+      "success": true,
+      "message": "Open positions fetched",
+      "data": []
+    }
+  },
+  "GET /orders/positions/closed": {
+    "status": 200,
+    "body": {
+      "success": true,
+      "message": "Closed positions fetched",
+      "data": [],
+      "pagination": {
+        "total": 0,
+        "page": 1,
+        "limit": 20,
+        "pages": 0
+      }
+    }
+  },
+  "GET /orders/portfolio/summary": {
+    "status": 200,
+    "body": {
+      "success": true,
+      "message": "Portfolio summary fetched",
+      "data": {
+        "dummyBalance": 0,
+        "feeBalance": 0,
+        "totalTrades": 0,
+        "totalRealizedPnl": 0,
+        "totalUnrealizedPnl": 0,
+        "totalInvested": 0,
+        "totalCurrentValue": 0,
+        "totalPortfolioValue": 0,
+        "openPositionsCount": 0
+      }
+    }
+  },
+  "GET /orders/pnl/summary": {
+    "status": 200,
+    "body": {
+      "success": true,
+      "message": "P&L summary fetched",
+      "data": {
+        "realizedPnl": 0,
+        "unrealizedPnl": 0,
+        "totalPnl": 0,
+        "totalTrades": 0,
+        "sellTrades": 0,
+        "profitableTrades": 0,
+        "losingTrades": 0,
+        "winRate": 0,
+        "maxProfit": 0,
+        "maxLoss": 0,
+        "openPositionsCount": 0
+      }
+    }
+  },
+  "GET /payments/history": {
+    "status": 200,
+    "body": {
+      "success": true,
+      "message": "Payment history fetched",
+      "data": [],
+      "pagination": {
+        "total": 0,
+        "page": 1,
+        "limit": 10,
+        "pages": 0
+      }
+    }
+  },
+  "GET /admin/dashboard": {
+    "status": 403,
+    "body": {
+      "success": false,
+      "message": "Access denied. Admin privileges required."
+    }
+  },
+  "POST /auth/refresh": {
+    "status": 200,
+    "body": {
+      "success": true,
+      "message": "Token refreshed successfully",
+      "data": {
+        "tokens": "[REDACTED]"
+      }
+    }
+  },
+  "GET /leaderboard": {
+    "status": 200,
+    "body": {
+      "success": true,
+      "message": "Leaderboard fetched successfully",
+      "data": {
+        "leaderboard": [],
+        "total": 0
+      }
+    }
+  },
+  "GET /leaderboard/stats": {
+    "status": 200,
+    "body": {
+      "success": true,
+      "message": "Leaderboard stats fetched",
+      "data": {
+        "totalTraders": 1,
+        "totalPremiumTraders": 0,
+        "totalProfitGenerated": 0,
+        "topGainer": {
+          "name": "Frontend QA",
+          "totalPnl": 0,
+          "profilePic": null
+        },
+        "recentJoiners": []
+      }
+    }
+  }
+}

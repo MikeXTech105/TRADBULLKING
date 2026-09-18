@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "preview",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "preview"],
+      "port": 4173
+    },
+    {
+      "name": "qa",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "--mode", "qa", "--port", "3002", "--strictPort"],
+      "port": 3002
+    }
+  ]
+}

@@ -1,0 +1,2436 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Trading App API",
+    "version": "1.0.0",
+    "description": "\n## Paper Trading Application API\n\nA comprehensive paper trading platform with AngelOne SmartAPI integration.\n\n### User Flow\n1. **Register** → Get 48 hours free trial (trade freely)\n2. **After 48 hours** → Must pay ₹500 to continue trading\n3. **Payment** → ₹99 platform fee + ₹401 credited to feeBalance\n4. **After payment** → Get ₹5,00,00,000 (5 crore) dummyBalance for trading\n5. **Each trade** → ₹2 deducted from feeBalance\n6. **feeBalance = 0** → Must recharge (pay ₹500 again)\n\n### Authentication\nUse Bearer token in Authorization header: `Authorization: Bearer <token>`\n      ",
+    "contact": {
+      "name": "Trading App Support",
+      "email": "support@trading.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "/api",
+      "description": "API Server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Enter your JWT access token"
+      }
+    },
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "user"
+            ]
+          },
+          "isPremium": {
+            "type": "boolean"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "trialEndDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isTrialActive": {
+            "type": "boolean"
+          },
+          "dummyBalance": {
+            "type": "number",
+            "example": 50000000
+          },
+          "feeBalance": {
+            "type": "number",
+            "example": 401
+          },
+          "totalPnl": {
+            "type": "number"
+          },
+          "totalTrades": {
+            "type": "integer"
+          }
+        }
+      },
+      "Stock": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "symbol": {
+            "type": "string",
+            "example": "RELIANCE"
+          },
+          "token": {
+            "type": "string",
+            "example": "2885"
+          },
+          "exchange": {
+            "type": "string",
+            "enum": [
+              "NSE",
+              "BSE",
+              "NFO",
+              "MCX"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "example": "Reliance Industries Ltd"
+          },
+          "ltp": {
+            "type": "number",
+            "example": 2456.75
+          },
+          "change": {
+            "type": "number",
+            "example": 12.5
+          },
+          "changePercent": {
+            "type": "number",
+            "example": 0.51
+          },
+          "high": {
+            "type": "number"
+          },
+          "low": {
+            "type": "number"
+          },
+          "open": {
+            "type": "number"
+          },
+          "close": {
+            "type": "number"
+          },
+          "volume": {
+            "type": "integer"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Order": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "stockId": {
+            "type": "string"
+          },
+          "symbol": {
+            "type": "string"
+          },
+          "exchange": {
+            "type": "string"
+          },
+          "orderType": {
+            "type": "string",
+            "enum": [
+              "BUY",
+              "SELL"
+            ]
+          },
+          "quantity": {
+            "type": "integer"
+          },
+          "price": {
+            "type": "number"
+          },
+          "priceType": {
+            "type": "string",
+            "enum": [
+              "MARKET",
+              "LIMIT"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "EXECUTED",
+              "CANCELLED",
+              "FAILED"
+            ]
+          },
+          "totalValue": {
+            "type": "number"
+          },
+          "pnl": {
+            "type": "number",
+            "nullable": true
+          },
+          "feesDeducted": {
+            "type": "number",
+            "example": 2
+          },
+          "executedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Position": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "symbol": {
+            "type": "string"
+          },
+          "exchange": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "integer"
+          },
+          "avgBuyPrice": {
+            "type": "number"
+          },
+          "currentPrice": {
+            "type": "number"
+          },
+          "investedAmount": {
+            "type": "number"
+          },
+          "currentValue": {
+            "type": "number"
+          },
+          "unrealizedPnl": {
+            "type": "number"
+          },
+          "realizedPnl": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "CLOSED"
+            ]
+          }
+        }
+      },
+      "Payment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number",
+            "example": 500
+          },
+          "platformFee": {
+            "type": "number",
+            "example": 99
+          },
+          "creditAmount": {
+            "type": "number",
+            "example": 401
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "SUCCESS",
+              "FAILED"
+            ]
+          },
+          "cashfreeOrderId": {
+            "type": "string"
+          },
+          "paymentLink": {
+            "type": "string"
+          }
+        }
+      },
+      "LeaderboardEntry": {
+        "type": "object",
+        "properties": {
+          "rank": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "profilePic": {
+            "type": "string",
+            "nullable": true
+          },
+          "totalPnl": {
+            "type": "number"
+          },
+          "totalTrades": {
+            "type": "integer"
+          },
+          "winRate": {
+            "type": "number"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "real",
+              "dummy"
+            ]
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "message": {
+            "type": "string"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "nullable": true
+          }
+        }
+      },
+      "SuccessResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "nullable": true
+          }
+        }
+      }
+    },
+    "responses": {
+      "UnauthorizedError": {
+        "description": "Authentication token is missing or invalid",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "ForbiddenError": {
+        "description": "Access denied",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "NotFoundError": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "ValidationError": {
+        "description": "Validation failed",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/watchlist": {
+      "get": {
+        "summary": "Get user's watchlist with live prices",
+        "tags": [
+          "Watchlist"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Watchlist with live stock prices"
+          }
+        }
+      }
+    },
+    "/watchlist/add": {
+      "post": {
+        "summary": "Add a stock to watchlist",
+        "tags": [
+          "Watchlist"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "stockId"
+                ],
+                "properties": {
+                  "stockId": {
+                    "type": "string",
+                    "description": "MongoDB ID of the stock",
+                    "example": "64f1a2b3c4d5e6f7a8b9c0d1"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Stock added to watchlist"
+          },
+          "404": {
+            "description": "Stock not found"
+          },
+          "409": {
+            "description": "Stock already in watchlist"
+          }
+        }
+      }
+    },
+    "/watchlist/clear": {
+      "delete": {
+        "summary": "Clear entire watchlist",
+        "tags": [
+          "Watchlist"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Watchlist cleared"
+          }
+        }
+      }
+    },
+    "/watchlist/{stockId}": {
+      "delete": {
+        "summary": "Remove a stock from watchlist",
+        "tags": [
+          "Watchlist"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "stockId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "MongoDB ID of the stock to remove"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stock removed from watchlist"
+          },
+          "404": {
+            "description": "Stock not found in watchlist"
+          }
+        }
+      }
+    },
+    "/stocks": {
+      "get": {
+        "summary": "Get all active stocks with live prices",
+        "tags": [
+          "Stocks"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 50
+            }
+          },
+          {
+            "in": "query",
+            "name": "exchange",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "NSE",
+                "BSE",
+                "NFO",
+                "MCX"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of active stocks"
+          }
+        }
+      }
+    },
+    "/stocks/search": {
+      "get": {
+        "summary": "Search stocks by symbol or name",
+        "tags": [
+          "Stocks"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search query (symbol or company name)"
+          },
+          {
+            "in": "query",
+            "name": "exchange",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Search results (up to 20 stocks)"
+          }
+        }
+      }
+    },
+    "/stocks/search-angelone": {
+      "post": {
+        "summary": "Search instruments directly from AngelOne API",
+        "tags": [
+          "Stocks"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "exchange",
+                  "searchscrip"
+                ],
+                "properties": {
+                  "exchange": {
+                    "type": "string",
+                    "example": "NSE"
+                  },
+                  "searchscrip": {
+                    "type": "string",
+                    "example": "RELIANCE"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "AngelOne search results"
+          },
+          "503": {
+            "description": "AngelOne session not available"
+          }
+        }
+      }
+    },
+    "/stocks/symbol/{symbol}": {
+      "get": {
+        "summary": "Get stock by trading symbol",
+        "tags": [
+          "Stocks"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "symbol",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "RELIANCE"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stock details"
+          },
+          "404": {
+            "description": "Stock not found"
+          }
+        }
+      }
+    },
+    "/stocks/{id}": {
+      "get": {
+        "summary": "Get stock details by ID",
+        "tags": [
+          "Stocks"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stock details"
+          },
+          "404": {
+            "description": "Stock not found"
+          }
+        }
+      }
+    },
+    "/stocks/{id}/ltp": {
+      "get": {
+        "summary": "Get live LTP for a stock",
+        "tags": [
+          "Stocks"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "fresh",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            },
+            "description": "Fetch fresh price from AngelOne"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Live price data"
+          }
+        }
+      }
+    },
+    "/stocks/{id}/historical": {
+      "get": {
+        "summary": "Get historical OHLC candle data",
+        "tags": [
+          "Stocks"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "interval",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ONE_MINUTE",
+                "THREE_MINUTE",
+                "FIVE_MINUTE",
+                "FIFTEEN_MINUTE",
+                "THIRTY_MINUTE",
+                "ONE_HOUR",
+                "ONE_DAY"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "fromdate",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "2024-01-01 09:15"
+          },
+          {
+            "in": "query",
+            "name": "todate",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "2024-01-31 15:30"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Historical candle data"
+          },
+          "503": {
+            "description": "AngelOne session not available"
+          }
+        }
+      }
+    },
+    "/payments/webhook": {
+      "post": {
+        "summary": "Cashfree payment webhook (called by Cashfree, not users)",
+        "tags": [
+          "Payments"
+        ],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook processed"
+          },
+          "400": {
+            "description": "Invalid signature"
+          }
+        }
+      }
+    },
+    "/payments/create": {
+      "post": {
+        "summary": "Create a payment order (₹500 subscription)",
+        "tags": [
+          "Payments"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Payment order created with session ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "orderId": {
+                          "type": "string"
+                        },
+                        "amount": {
+                          "type": "number",
+                          "example": 500
+                        },
+                        "paymentSessionId": {
+                          "type": "string"
+                        },
+                        "breakdown": {
+                          "type": "object",
+                          "properties": {
+                            "totalAmount": {
+                              "type": "number",
+                              "example": 500
+                            },
+                            "platformFee": {
+                              "type": "number",
+                              "example": 99
+                            },
+                            "creditToFeeBalance": {
+                              "type": "number",
+                              "example": 401
+                            },
+                            "dummyBalanceOnSuccess": {
+                              "type": "number",
+                              "example": 50000000
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payments/verify/{orderId}": {
+      "post": {
+        "summary": "Verify payment and activate premium subscription",
+        "tags": [
+          "Payments"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orderId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Cashfree order ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payment verified - premium activated with ₹5 crore balance"
+          },
+          "404": {
+            "description": "Payment record not found"
+          }
+        }
+      }
+    },
+    "/payments/history": {
+      "get": {
+        "summary": "Get user's payment history",
+        "tags": [
+          "Payments"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payment history"
+          }
+        }
+      }
+    },
+    "/payments/{orderId}": {
+      "get": {
+        "summary": "Get payment details by order ID",
+        "tags": [
+          "Payments"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orderId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payment details"
+          },
+          "404": {
+            "description": "Payment not found"
+          }
+        }
+      }
+    },
+    "/orders/portfolio/summary": {
+      "get": {
+        "summary": "Get portfolio overview (balance, invested, P&L)",
+        "tags": [
+          "Orders"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Portfolio summary"
+          }
+        }
+      }
+    },
+    "/orders/pnl/summary": {
+      "get": {
+        "summary": "Get detailed P&L summary",
+        "tags": [
+          "Orders"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "P&L breakdown with win rate, max profit/loss"
+          }
+        }
+      }
+    },
+    "/orders/positions/open": {
+      "get": {
+        "summary": "Get all open positions with live unrealized P&L",
+        "tags": [
+          "Orders"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Open positions with live prices"
+          }
+        }
+      }
+    },
+    "/orders/positions/closed": {
+      "get": {
+        "summary": "Get closed positions history",
+        "tags": [
+          "Orders"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated closed positions"
+          }
+        }
+      }
+    },
+    "/orders/buy": {
+      "post": {
+        "summary": "Place a BUY order",
+        "tags": [
+          "Orders"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "stockId",
+                  "orderType",
+                  "quantity"
+                ],
+                "properties": {
+                  "stockId": {
+                    "type": "string",
+                    "description": "MongoDB ID of the stock"
+                  },
+                  "quantity": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 10
+                  },
+                  "priceType": {
+                    "type": "string",
+                    "enum": [
+                      "MARKET",
+                      "LIMIT"
+                    ],
+                    "default": "MARKET"
+                  },
+                  "limitPrice": {
+                    "type": "number",
+                    "description": "Required if priceType is LIMIT"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Buy order executed"
+          },
+          "400": {
+            "description": "Insufficient balance or invalid request"
+          },
+          "403": {
+            "description": "Cannot trade - trial expired or fee balance empty"
+          }
+        }
+      }
+    },
+    "/orders/sell": {
+      "post": {
+        "summary": "Place a SELL order",
+        "tags": [
+          "Orders"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "stockId",
+                  "orderType",
+                  "quantity"
+                ],
+                "properties": {
+                  "stockId": {
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "priceType": {
+                    "type": "string",
+                    "enum": [
+                      "MARKET",
+                      "LIMIT"
+                    ]
+                  },
+                  "limitPrice": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Sell order executed with realized P&L"
+          },
+          "400": {
+            "description": "Insufficient position quantity"
+          },
+          "403": {
+            "description": "Cannot trade"
+          }
+        }
+      }
+    },
+    "/orders": {
+      "get": {
+        "summary": "Get order history",
+        "tags": [
+          "Orders"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "orderType",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "BUY",
+                "SELL"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "EXECUTED",
+                "CANCELLED",
+                "FAILED"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "symbol",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated order history"
+          }
+        }
+      }
+    },
+    "/orders/{id}": {
+      "get": {
+        "summary": "Get order details by ID",
+        "tags": [
+          "Orders"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Order details"
+          },
+          "404": {
+            "description": "Order not found"
+          }
+        }
+      }
+    },
+    "/leaderboard": {
+      "get": {
+        "summary": "Get combined leaderboard (real users + dummy entries), sorted by total P&L",
+        "tags": [
+          "Leaderboard"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 50
+            },
+            "description": "Number of entries to return"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ranked leaderboard with P&L, win rate, and trade stats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "leaderboard": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "rank": {
+                                "type": "integer"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "totalPnl": {
+                                "type": "number"
+                              },
+                              "totalTrades": {
+                                "type": "integer"
+                              },
+                              "winRate": {
+                                "type": "number"
+                              },
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "real",
+                                  "dummy"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/leaderboard/stats": {
+      "get": {
+        "summary": "Get leaderboard statistics (total traders, top gainer, total profit)",
+        "tags": [
+          "Leaderboard"
+        ],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Leaderboard statistics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "totalTraders": {
+                          "type": "integer"
+                        },
+                        "totalPremiumTraders": {
+                          "type": "integer"
+                        },
+                        "totalProfitGenerated": {
+                          "type": "number"
+                        },
+                        "topGainer": {
+                          "type": "object"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/leaderboard/user/{userId}": {
+      "get": {
+        "summary": "Get public profile and recent trades of a leaderboard user",
+        "tags": [
+          "Leaderboard"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "MongoDB user ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User public profile with 50 most recent executed trades"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        }
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "summary": "Register a new user",
+        "tags": [
+          "Auth"
+        ],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "email",
+                  "password"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "John Doe"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "john@example.com"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 6,
+                    "example": "password123"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "example": "9876543210"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Registration successful with 48-hour free trial"
+          },
+          "409": {
+            "description": "Email already registered"
+          },
+          "422": {
+            "description": "Validation error"
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "summary": "Login user",
+        "tags": [
+          "Auth"
+        ],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email",
+                  "password"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "john@example.com"
+                  },
+                  "password": {
+                    "type": "string",
+                    "example": "password123"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful"
+          },
+          "401": {
+            "description": "Invalid credentials"
+          }
+        }
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "summary": "Refresh access token",
+        "tags": [
+          "Auth"
+        ],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "refreshToken"
+                ],
+                "properties": {
+                  "refreshToken": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "New tokens issued"
+          },
+          "401": {
+            "description": "Invalid or expired refresh token"
+          }
+        }
+      }
+    },
+    "/auth/profile": {
+      "get": {
+        "summary": "Get current user profile",
+        "tags": [
+          "Auth"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profile data"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update user profile (name and phone only)",
+        "tags": [
+          "Auth"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "phone": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated"
+          }
+        }
+      }
+    },
+    "/auth/change-password": {
+      "post": {
+        "summary": "Change user password",
+        "tags": [
+          "Auth"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "oldPassword",
+                  "newPassword"
+                ],
+                "properties": {
+                  "oldPassword": {
+                    "type": "string"
+                  },
+                  "newPassword": {
+                    "type": "string",
+                    "minLength": 6
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password changed successfully"
+          },
+          "400": {
+            "description": "Incorrect current password"
+          }
+        }
+      }
+    },
+    "/admin/dashboard": {
+      "get": {
+        "summary": "Get admin dashboard overview",
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dashboard stats including users, orders, revenue"
+          },
+          "403": {
+            "description": "Admin access required"
+          }
+        }
+      }
+    },
+    "/admin/users": {
+      "get": {
+        "summary": "Get all users with optional filters",
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search by name, email, or phone"
+          },
+          {
+            "in": "query",
+            "name": "filter",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "premium",
+                "trial",
+                "expired"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of users"
+          }
+        }
+      }
+    },
+    "/admin/users/{id}": {
+      "get": {
+        "summary": "Get user details",
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User details and stats"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        }
+      }
+    },
+    "/admin/users/{id}/trades": {
+      "get": {
+        "summary": "Get a user's trade history",
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User's trade history"
+          }
+        }
+      }
+    },
+    "/admin/users/{id}/pnl": {
+      "get": {
+        "summary": "Get a user's P&L summary",
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User's P&L breakdown"
+          }
+        }
+      }
+    },
+    "/admin/users/{id}/toggle-active": {
+      "put": {
+        "summary": "Activate or deactivate a user",
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User status toggled"
+          }
+        }
+      }
+    },
+    "/admin/stocks": {
+      "get": {
+        "summary": "Get all stocks (including disabled)",
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "exchange",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "NSE",
+                "BSE",
+                "NFO",
+                "MCX"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of all stocks"
+          }
+        }
+      },
+      "post": {
+        "summary": "Add a new stock",
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "symbol",
+                  "token",
+                  "exchange",
+                  "name"
+                ],
+                "properties": {
+                  "symbol": {
+                    "type": "string",
+                    "example": "RELIANCE"
+                  },
+                  "token": {
+                    "type": "string",
+                    "example": "2885"
+                  },
+                  "exchange": {
+                    "type": "string",
+                    "enum": [
+                      "NSE",
+                      "BSE",
+                      "NFO",
+                      "MCX"
+                    ]
+                  },
+                  "name": {
+                    "type": "string",
+                    "example": "Reliance Industries Ltd"
+                  },
+                  "exchangeType": {
+                    "type": "integer",
+                    "example": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Stock added successfully"
+          },
+          "409": {
+            "description": "Stock with this token already exists"
+          }
+        }
+      }
+    },
+    "/admin/stocks/{id}": {
+      "put": {
+        "summary": "Update stock details",
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "high52": {
+                    "type": "number"
+                  },
+                  "low52": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Stock updated"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a stock",
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stock deleted"
+          },
+          "400": {
+            "description": "Cannot delete stock with open positions"
+          }
+        }
+      }
+    },
+    "/admin/stocks/{id}/toggle": {
+      "put": {
+        "summary": "Enable or disable a stock (visible to users)",
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stock status toggled"
+          }
+        }
+      }
+    },
+    "/admin/stocks/sync-prices": {
+      "post": {
+        "summary": "Sync live prices for all active stocks from AngelOne",
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Prices synced"
+          },
+          "503": {
+            "description": "AngelOne session not available"
+          }
+        }
+      }
+    },
+    "/admin/angelone/session": {
+      "post": {
+        "summary": "Initialize AngelOne session with credentials",
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "totp"
+                ],
+                "properties": {
+                  "clientId": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "totp": {
+                    "type": "string",
+                    "description": "Time-based OTP from authenticator app"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Session initialized, WebSocket connected"
+          }
+        }
+      }
+    },
+    "/admin/angelone/instruments": {
+      "get": {
+        "summary": "Fetch all instruments from AngelOne with optional search and filters",
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search by symbol, name, or token"
+          },
+          {
+            "in": "query",
+            "name": "exchange",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "NSE",
+                "BSE",
+                "NFO",
+                "MCX",
+                "CDS"
+              ]
+            },
+            "description": "Filter by exchange"
+          },
+          {
+            "in": "query",
+            "name": "instrumenttype",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "AMXIDX",
+                "OPTIDX",
+                "FUTIDX",
+                "FUTSTK",
+                "OPTSTK",
+                "EQ"
+              ]
+            },
+            "description": "Filter by instrument type"
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of AngelOne instruments"
+          },
+          "503": {
+            "description": "Failed to fetch instruments"
+          }
+        }
+      }
+    },
+    "/admin/leaderboard": {
+      "get": {
+        "summary": "Get all dummy leaderboard entries (including hidden)",
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "All dummy entries"
+          }
+        }
+      },
+      "post": {
+        "summary": "Add a dummy leaderboard entry",
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "totalPnl"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Rahul Sharma"
+                  },
+                  "profilePic": {
+                    "type": "string"
+                  },
+                  "totalPnl": {
+                    "type": "number",
+                    "example": 1500000
+                  },
+                  "totalTrades": {
+                    "type": "integer",
+                    "example": 125
+                  },
+                  "winRate": {
+                    "type": "number",
+                    "example": 68.5
+                  },
+                  "winAmount": {
+                    "type": "number"
+                  },
+                  "lossAmount": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Dummy entry added"
+          }
+        }
+      }
+    },
+    "/admin/leaderboard/{id}": {
+      "put": {
+        "summary": "Update a dummy leaderboard entry",
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "totalPnl": {
+                    "type": "number"
+                  },
+                  "isVisible": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Entry updated"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a dummy leaderboard entry",
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Entry deleted"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Watchlist",
+      "description": "User watchlist management"
+    },
+    {
+      "name": "Stocks",
+      "description": "Stock market data endpoints"
+    },
+    {
+      "name": "Payments",
+      "description": "Subscription payment endpoints"
+    },
+    {
+      "name": "Orders",
+      "description": "Order placement and management"
+    },
+    {
+      "name": "Leaderboard",
+      "description": "Trading leaderboard endpoints"
+    },
+    {
+      "name": "Auth",
+      "description": "Authentication endpoints"
+    },
+    {
+      "name": "Admin",
+      "description": "Admin-only endpoints"
+    }
+  ]
+}

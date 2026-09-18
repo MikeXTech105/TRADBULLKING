@@ -1,9 +1,4 @@
-import { Navigate, Outlet } from "react-router-dom";
-import { getCurrentAdmin } from "../services/authService";
+import ProtectedRoute from "./ProtectedRoute";
 export default function AdminProtectedRoute() {
-  return getCurrentAdmin() ? (
-    <Outlet />
-  ) : (
-    <Navigate to="/admin/login" replace />
-  );
+  return <ProtectedRoute role="admin" />;
 }
