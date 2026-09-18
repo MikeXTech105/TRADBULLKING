@@ -41,25 +41,21 @@ const register = async (req, res) => {
       return errorResponse(res, 'Email is already registered', 409);
     }
 
-    // Create new user
+    // Create new user — trialEndDate and dummyBalance are also set by pre-save hook as fallback
     const user = new User({
       name,
       email,
       password,
       phone: phone || undefined,
       role: 'user',
-      trialEndDate: new Date(Date.now() + TRIAL_HOURS * 60 * 60 * 1000),
       dummyBalance: INITIAL_BALANCE, // 1 crore on registration
+      lastLogin: new Date(),
     });
 
     await user.save();
 
     const accessToken = generateAccessToken(user._id, user.role);
     const refreshToken = generateRefreshToken(user._id);
-
-    // Update last login
-    user.lastLogin = new Date();
-    await user.save();
 
     logger.info(`New user registered: ${email}`);
 

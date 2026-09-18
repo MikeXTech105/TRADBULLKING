@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-const { TRIAL_HOURS } = require('../utils/constants');
+const { TRIAL_HOURS, INITIAL_BALANCE } = require('../utils/constants');
 
 const userSchema = new mongoose.Schema(
   {
@@ -101,10 +101,16 @@ userSchema.pre('save', async function (next) {
   }
 });
 
-// Pre-save hook to set trialEndDate on new user
+// Pre-save hook to set trialEndDate and initial balance on new user
 userSchema.pre('save', function (next) {
-  if (this.isNew && this.role === 'user' && !this.trialEndDate) {
-    this.trialEndDate = new Date(Date.now() + TRIAL_HOURS * 60 * 60 * 1000);
+  if (this.isNew && this.role === 'user' && !this.isDummy) {
+    if (!this.trialEndDate) {
+      this.trialEndDate = new Date(Date.now() + TRIAL_HOURS * 60 * 60 * 1000);
+    }
+    // Ensure new real users always get 1 crore starting balance
+    if (!this.dummyBalance) {
+      this.dummyBalance = INITIAL_BALANCE;
+    }
   }
   next();
 });
