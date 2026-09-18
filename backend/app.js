@@ -11,6 +11,9 @@ const logger = require('./src/utils/logger');
 
 const app = express();
 
+// Trust reverse proxy (nginx) — required for rate limiting and X-Forwarded-For
+app.set('trust proxy', 1);
+
 // Security headers
 app.use(
   helmet({
@@ -53,7 +56,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Rate limiting - general
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
+  max: 10000,
   message: { success: false, message: 'Too many requests, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,

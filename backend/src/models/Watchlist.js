@@ -39,7 +39,7 @@ const watchlistSchema = new mongoose.Schema(
   }
 );
 
-watchlistSchema.index({ userId: 1 });
+// userId index is auto-created by unique:true on the field
 watchlistSchema.index({ 'stocks.stockId': 1 });
 
 const Watchlist = mongoose.model('Watchlist', watchlistSchema);

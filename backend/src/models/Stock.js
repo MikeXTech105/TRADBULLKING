@@ -86,8 +86,7 @@ const stockSchema = new mongoose.Schema(
   }
 );
 
-// Indexes
-stockSchema.index({ token: 1 });
+// Indexes (token index is auto-created by unique:true on the field)
 stockSchema.index({ symbol: 1, exchange: 1 });
 stockSchema.index({ isActive: 1 });
 stockSchema.index({ symbol: 'text', name: 'text' });

@@ -82,8 +82,7 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Index for performance
-userSchema.index({ email: 1 });
+// Index for performance (email index is auto-created by unique:true on the field)
 userSchema.index({ role: 1 });
 userSchema.index({ isPremium: 1 });
 userSchema.index({ totalPnl: -1 });

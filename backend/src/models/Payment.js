@@ -66,7 +66,7 @@ const paymentSchema = new mongoose.Schema(
 );
 
 paymentSchema.index({ userId: 1, createdAt: -1 });
-paymentSchema.index({ cashfreeOrderId: 1 });
+// cashfreeOrderId index is auto-created by unique:true on the field
 paymentSchema.index({ status: 1 });
 
 const Payment = mongoose.model('Payment', paymentSchema);
