@@ -2,17 +2,17 @@ const cron = require('node-cron');
 const fs = require('fs');
 const path = require('path');
 const User = require('../models/User');
+const Stock = require('../models/Stock');
 const Position = require('../models/Position');
-const DummyLeaderboard = require('../models/DummyLeaderboard');
 const LeaderboardHistory = require('../models/LeaderboardHistory');
 const logger = require('../utils/logger');
 const { DUMMY_BALANCE } = require('../utils/constants');
+const tradeService = require('./trade.service');
 
 const INSTRUMENTS_FILE = path.join(__dirname, '../../angelone_instruments.json');
 
-/**
- * Fetch all instruments from AngelOne and save to local JSON cache file.
- */
+// =================== INSTRUMENTS CACHE ===================
+
 const refreshInstrumentsCache = async () => {
   try {
     logger.info('Refreshing AngelOne instruments cache...');
@@ -42,98 +42,116 @@ const randInt = (min, max) => Math.floor(randBetween(min, max + 1));
  */
 const isMarketHours = () => {
   const now = new Date();
-  // Convert to IST (UTC+5:30)
   const ist = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
-  const day = ist.getUTCDay(); // 0=Sun, 6=Sat
+  const day = ist.getUTCDay();
   if (day === 0 || day === 6) return false;
-  const hours = ist.getUTCHours();
-  const minutes = ist.getUTCMinutes();
-  const totalMin = hours * 60 + minutes;
+  const totalMin = ist.getUTCHours() * 60 + ist.getUTCMinutes();
   return totalMin >= 555 && totalMin <= 930; // 9:15 to 15:30
 };
 
 /**
- * Simulate trades for all visible DummyLeaderboard entries.
- * Each entry randomly takes 1–3 trades (win/loss) and updates stats.
+ * Simulate real trades for all dummy users via the actual trade service.
+ * - SELL: any open position held > 30 min, or 40% random chance each cycle
+ * - BUY: if no open positions, or randomly (30% chance) for up to 3 concurrent positions
  * Only runs during market hours on weekdays.
  */
 const runDummyUserTrades = async () => {
   if (!isMarketHours()) return;
 
   try {
-    const dummies = await DummyLeaderboard.find({ isVisible: true });
+    const dummies = await User.find({ isDummy: true, isActive: true });
     if (!dummies.length) return;
 
-    // Pick 30–70% of dummy users to trade this cycle
-    const participants = dummies.filter(() => Math.random() < 0.5);
-    if (!participants.length) return;
+    // Only active stocks with a live price
+    const activeStocks = await Stock.find({ isActive: true, ltp: { $gt: 0 } });
+    if (!activeStocks.length) {
+      logger.warn('Dummy trade skipped: no active stocks with live price');
+      return;
+    }
 
-    const bulkOps = participants.map((dummy) => {
-      const tradeCount = randInt(1, 3);
-      let pnlDelta = 0;
-      let winCount = 0;
-      let lossCount = 0;
-      let winAmtDelta = 0;
-      let lossAmtDelta = 0;
+    let buyCount = 0;
+    let sellCount = 0;
 
-      for (let i = 0; i < tradeCount; i++) {
-        const isWin = Math.random() < 0.55; // 55% win rate on average
-        const amount = parseFloat(randBetween(500, 45000).toFixed(2));
-        if (isWin) {
-          pnlDelta += amount;
-          winAmtDelta += amount;
-          winCount++;
-        } else {
-          pnlDelta -= amount;
-          lossAmtDelta += amount;
-          lossCount++;
+    for (const dummy of dummies) {
+      try {
+        // --- SELL phase ---
+        const openPositions = await Position.find({ userId: dummy._id, status: 'OPEN' });
+
+        for (const pos of openPositions) {
+          const heldMinutes = (Date.now() - new Date(pos.createdAt).getTime()) / 60000;
+          // Sell if held > 30 min OR 40% random chance each cycle
+          const shouldSell = heldMinutes > 30 || Math.random() < 0.4;
+
+          if (shouldSell) {
+            try {
+              await tradeService.placeSellOrder(dummy._id, pos.stockId, pos.quantity);
+              sellCount++;
+            } catch (e) {
+              logger.warn(`Dummy SELL failed [${dummy.name}]: ${e.message}`);
+            }
+          }
         }
+
+        // --- BUY phase ---
+        const currentOpenCount = await Position.countDocuments({
+          userId: dummy._id,
+          status: 'OPEN',
+        });
+
+        // Buy if: no open positions OR randomly open a 2nd/3rd position (max 3)
+        const shouldBuy =
+          currentOpenCount === 0 || (currentOpenCount < 3 && Math.random() < 0.3);
+
+        if (shouldBuy) {
+          // Refresh dummy balance from DB after sells
+          const freshUser = await User.findById(dummy._id).select('dummyBalance');
+          const balance = freshUser?.dummyBalance || 0;
+
+          // Filter stocks affordable with at least 1 qty
+          const affordable = activeStocks.filter((s) => s.ltp > 0 && balance >= s.ltp);
+          if (!affordable.length) continue;
+
+          const stock = affordable[randInt(0, affordable.length - 1)];
+
+          // Buy 1–10 qty, but never use more than 20% of balance per trade
+          const maxAffordableQty = Math.floor((balance * 0.2) / stock.ltp);
+          const qty = randInt(1, Math.max(1, Math.min(10, maxAffordableQty)));
+
+          try {
+            await tradeService.placeBuyOrder(dummy._id, stock._id, qty);
+            buyCount++;
+          } catch (e) {
+            logger.warn(`Dummy BUY failed [${dummy.name}]: ${e.message}`);
+          }
+        }
+      } catch (e) {
+        logger.warn(`Dummy trade cycle error [${dummy.name}]: ${e.message}`);
       }
+    }
 
-      const newTotalTrades = dummy.totalTrades + tradeCount;
-      const newWinAmount = dummy.winAmount + winAmtDelta;
-      const newLossAmount = dummy.lossAmount + lossAmtDelta;
-      const totalWins = Math.round((dummy.winRate / 100) * dummy.totalTrades) + winCount;
-      const newWinRate = parseFloat(((totalWins / newTotalTrades) * 100).toFixed(2));
-
-      return {
-        updateOne: {
-          filter: { _id: dummy._id },
-          update: {
-            $inc: { totalPnl: parseFloat(pnlDelta.toFixed(2)), totalTrades: tradeCount },
-            $set: {
-              winRate: newWinRate,
-              winAmount: parseFloat(newWinAmount.toFixed(2)),
-              lossAmount: parseFloat(newLossAmount.toFixed(2)),
-            },
-          },
-        },
-      };
-    });
-
-    await DummyLeaderboard.bulkWrite(bulkOps);
-    logger.info(`Dummy trade simulation: updated ${participants.length} dummy users`);
+    logger.info(
+      `Dummy trade simulation complete — ${buyCount} buys, ${sellCount} sells across ${dummies.length} dummy users`
+    );
   } catch (error) {
     logger.error('runDummyUserTrades error:', error.message);
   }
 };
 
 /**
- * Add new dummy leaderboard entries if count is below threshold.
- * Runs daily — creates 1–3 new realistic dummy users with seeded stats.
+ * Add new dummy users to the User collection if count is below threshold.
+ * Creates real User documents so all trade/position/leaderboard flows work identically.
  */
 const addDummyLeaderboardEntries = async () => {
   try {
-    const count = await DummyLeaderboard.countDocuments({ isVisible: true });
+    const count = await User.countDocuments({ isDummy: true, isActive: true });
 
-    // Keep at least 15 visible dummy entries
     if (count >= 15) {
-      logger.info(`Dummy entries already at ${count}, skipping creation`);
+      logger.info(`Dummy users already at ${count}, skipping creation`);
       return;
     }
 
     const toAdd = randInt(1, 3);
-    const usedNames = (await DummyLeaderboard.distinct('name')) || [];
+    const usedNames = (await User.distinct('name', { isDummy: true })) || [];
     const availableNames = DUMMY_NAMES.filter((n) => !usedNames.includes(n));
 
     if (!availableNames.length) {
@@ -141,27 +159,39 @@ const addDummyLeaderboardEntries = async () => {
       return;
     }
 
-    const entries = [];
+    const bcrypt = require('bcryptjs');
+    const salt = await bcrypt.genSalt(12);
+    const hashedPassword = await bcrypt.hash('Dummy@123456', salt);
+
+    let created = 0;
     for (let i = 0; i < Math.min(toAdd, availableNames.length); i++) {
+      const name = availableNames[i];
+      // Seed realistic starting stats so they look active from day 1
       const totalTrades = randInt(20, 120);
-      const winRate = parseFloat(randBetween(45, 75).toFixed(2));
-      const totalWins = Math.round((winRate / 100) * totalTrades);
       const winAmount = parseFloat(randBetween(50000, 800000).toFixed(2));
       const lossAmount = parseFloat(randBetween(20000, winAmount * 0.7).toFixed(2));
 
-      entries.push({
-        name: availableNames[i],
-        totalPnl: parseFloat((winAmount - lossAmount).toFixed(2)),
-        totalTrades,
-        winRate,
-        winAmount,
-        lossAmount,
-        isVisible: true,
-      });
+      try {
+        await User.create({
+          name,
+          email: `dummy_${name.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}@tradbull.internal`,
+          password: hashedPassword,
+          role: 'user',
+          isDummy: true,
+          isActive: true,
+          isPremium: true,
+          dummyBalance: DUMMY_BALANCE,
+          feeBalance: 999999, // never runs out — dummy users always can trade
+          totalPnl: parseFloat((winAmount - lossAmount).toFixed(2)),
+          totalTrades,
+        });
+        created++;
+      } catch (e) {
+        logger.warn(`Failed to create dummy user [${name}]: ${e.message}`);
+      }
     }
 
-    await DummyLeaderboard.insertMany(entries);
-    logger.info(`Added ${entries.length} new dummy leaderboard entries`);
+    logger.info(`Added ${created} new dummy users to User collection`);
   } catch (error) {
     logger.error('addDummyLeaderboardEntries error:', error.message);
   }
@@ -169,40 +199,23 @@ const addDummyLeaderboardEntries = async () => {
 
 // =================== LEADERBOARD ===================
 
-/**
- * Snapshot current leaderboard and save to history.
- */
 const snapshotLeaderboard = async () => {
   try {
-    // Fetch real premium users with activity
-    const realUsers = await User.find({
+    const allUsers = await User.find({
       role: 'user',
       isActive: true,
-      isPremium: true,
-    }).select('name totalPnl totalTrades');
+      $or: [{ isPremium: true }, { isDummy: true }],
+    }).select('name totalPnl totalTrades isDummy');
 
-    // Fetch visible dummy entries
-    const dummyEntries = await DummyLeaderboard.find({ isVisible: true }).select(
-      'name totalPnl totalTrades'
-    );
-
-    // Merge and sort by totalPnl descending
-    const combined = [
-      ...realUsers.map((u) => ({
-        userId: u._id,
+    const combined = allUsers
+      .map((u) => ({
+        userId: u.isDummy ? null : u._id,
         name: u.name,
         totalPnl: u.totalPnl,
         totalTrades: u.totalTrades,
-        isDummy: false,
-      })),
-      ...dummyEntries.map((d) => ({
-        userId: null,
-        name: d.name,
-        totalPnl: d.totalPnl,
-        totalTrades: d.totalTrades,
-        isDummy: true,
-      })),
-    ].sort((a, b) => b.totalPnl - a.totalPnl);
+        isDummy: u.isDummy,
+      }))
+      .sort((a, b) => b.totalPnl - a.totalPnl);
 
     const entries = combined.map((entry, idx) => ({ rank: idx + 1, ...entry }));
 
@@ -219,51 +232,50 @@ const snapshotLeaderboard = async () => {
 };
 
 /**
- * Close all open positions for premium users (balance reset wipes the slate).
+ * Close open positions only for real (non-dummy) premium users at daily reset.
+ * Dummy users keep their positions across days — they trade continuously.
  */
 const closeOpenPositions = async () => {
   try {
+    // Get only real (non-dummy) premium user IDs
+    const realUsers = await User.find({
+      role: 'user',
+      isActive: true,
+      isPremium: true,
+      isDummy: { $ne: true },
+    }).select('_id');
+
+    const userIds = realUsers.map((u) => u._id);
+
     const result = await Position.updateMany(
-      { status: 'OPEN' },
-      {
-        $set: {
-          status: 'CLOSED',
-          closedAt: new Date(),
-          unrealizedPnl: 0,
-        },
-      }
+      { userId: { $in: userIds }, status: 'OPEN' },
+      { $set: { status: 'CLOSED', closedAt: new Date(), unrealizedPnl: 0 } }
     );
-    logger.info(`Closed ${result.modifiedCount} open positions for daily reset`);
+
+    logger.info(`Closed ${result.modifiedCount} open positions for daily reset (real users only)`);
   } catch (error) {
     logger.error('closeOpenPositions error:', error.message);
   }
 };
 
 /**
- * Reset balance and stats for all premium users.
+ * Reset balance and stats for real premium users only.
+ * Dummy users are excluded — their PnL accumulates continuously for the leaderboard.
  */
 const resetPremiumUsers = async () => {
   try {
     const result = await User.updateMany(
-      { role: 'user', isActive: true, isPremium: true },
-      {
-        $set: {
-          dummyBalance: DUMMY_BALANCE, // reset to 5 crore
-          totalPnl: 0,
-          totalTrades: 0,
-        },
-      }
+      { role: 'user', isActive: true, isPremium: true, isDummy: { $ne: true } },
+      { $set: { dummyBalance: DUMMY_BALANCE, totalPnl: 0, totalTrades: 0 } }
     );
-    logger.info(`Daily reset: ${result.modifiedCount} premium users reset to 5cr`);
+    logger.info(`Daily reset: ${result.modifiedCount} real premium users reset`);
   } catch (error) {
     logger.error('resetPremiumUsers error:', error.message);
   }
 };
 
-/**
- * Full daily cycle: snapshot → close positions → reset balances.
- * Runs at midnight (00:00) every day.
- */
+// =================== SCHEDULER INIT ===================
+
 const startDailyScheduler = () => {
   // Refresh AngelOne instruments cache every 24 hours at 6 AM
   cron.schedule('0 6 * * *', async () => {
@@ -273,16 +285,17 @@ const startDailyScheduler = () => {
   // Run once on startup so the cache is available immediately
   refreshInstrumentsCache();
 
-  // Simulate dummy user trades every 15 minutes (only during market hours)
+  // Simulate dummy user trades every 15 minutes (market hours only)
   cron.schedule('*/15 * * * *', async () => {
     await runDummyUserTrades();
   });
 
-  // Add new dummy leaderboard entries daily at 8 AM (before market opens)
+  // Add new dummy users every weekday at 8 AM (before market opens)
   cron.schedule('0 8 * * 1-5', async () => {
     await addDummyLeaderboardEntries();
   });
 
+  // Daily reset at midnight — snapshot leaderboard, close real positions, reset real users
   cron.schedule('0 0 * * *', async () => {
     logger.info('=== Daily leaderboard & balance reset started ===');
     await snapshotLeaderboard();
@@ -291,15 +304,14 @@ const startDailyScheduler = () => {
     logger.info('=== Daily leaderboard & balance reset completed ===');
   });
 
-  // Auto-refresh AngelOne session every 22 hours using refresh token
+  // Auto-refresh AngelOne session every 22 hours
   cron.schedule('0 */22 * * *', async () => {
     const angeloneConfig = require('../config/angelone');
     const wsService = require('./websocket.service');
     if (!angeloneConfig.isSessionValid()) {
       logger.info('AngelOne session expired, attempting auto-refresh...');
       try {
-        const refreshed = await angeloneConfig.refreshSession();
-        // Reconnect WebSocket with new tokens
+        await angeloneConfig.refreshSession();
         const session = angeloneConfig.getSession();
         if (session.jwtToken && session.feedToken && session.clientCode) {
           await wsService.connect(session.jwtToken, session.feedToken, session.clientCode);
@@ -311,7 +323,7 @@ const startDailyScheduler = () => {
     }
   });
 
-  logger.info('Daily scheduler initialized — runs at midnight every day');
+  logger.info('Scheduler initialized');
 };
 
 module.exports = { startDailyScheduler, runDummyUserTrades, addDummyLeaderboardEntries };

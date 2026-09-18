@@ -45,6 +45,10 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isDummy: {
+      type: Boolean,
+      default: false,
+    },
     dummyBalance: {
       type: Number,
       default: 0,
@@ -83,6 +87,7 @@ userSchema.index({ email: 1 });
 userSchema.index({ role: 1 });
 userSchema.index({ isPremium: 1 });
 userSchema.index({ totalPnl: -1 });
+userSchema.index({ isDummy: 1 });
 
 // Pre-save hook to hash password
 userSchema.pre('save', async function (next) {
