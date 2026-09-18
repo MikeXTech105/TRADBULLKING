@@ -10,11 +10,22 @@ function resolveSocketUrl() {
   return base.replace(/\/api\/?$/, "");
 }
 let socket = null;
-const subscribedTokens = new Set();
+// token -> number of independent subscribers currently wanting it. Multiple
+// unrelated callers (e.g. the user-facing quote service and the admin
+// instrument browser) can legitimately want the same token at once; only
+// drop the server-side subscription once nobody wants it any more.
+const tokenRefCounts = new Map();
 const priceListeners = new Set();
 const statusListeners = new Set();
 function emitStatus(status) {
   statusListeners.forEach((fn) => fn(status));
+}
+function resolveAuthToken() {
+  // The socket carries only public market data, so either an authenticated
+  // user or admin session is sufficient — prefer whichever is present.
+  return (
+    readSession("user")?.accessToken || readSession("admin")?.accessToken
+  );
 }
 function ensureSocket() {
   if (socket) return socket;
@@ -26,11 +37,11 @@ function ensureSocket() {
     // Evaluated fresh on every (re)connect attempt, so a token refreshed
     // after the socket was created is still picked up without a forced
     // reconnect on every refresh.
-    auth: (cb) => cb({ token: readSession("user")?.accessToken }),
+    auth: (cb) => cb({ token: resolveAuthToken() }),
   });
   socket.on("connect", () => {
-    if (subscribedTokens.size)
-      socket.emit("subscribe:stocks", [...subscribedTokens]);
+    if (tokenRefCounts.size)
+      socket.emit("subscribe:stocks", [...tokenRefCounts.keys()]);
     emitStatus("connected");
   });
   socket.on("disconnect", () => emitStatus("disconnected"));
@@ -53,30 +64,42 @@ export function isConnected() {
 }
 export function subscribeTokens(tokens) {
   const wanted = tokens.filter(Boolean);
-  const fresh = wanted.filter((t) => !subscribedTokens.has(t));
-  if (!fresh.length) return;
-  fresh.forEach((t) => subscribedTokens.add(t));
+  if (!wanted.length) return;
+  const newlyWanted = [];
+  for (const t of wanted) {
+    const count = tokenRefCounts.get(t) ?? 0;
+    if (count === 0) newlyWanted.push(t);
+    tokenRefCounts.set(t, count + 1);
+  }
+  if (!newlyWanted.length) return;
   const s = ensureSocket();
-  if (s.connected) s.emit("subscribe:stocks", fresh);
+  if (s.connected) s.emit("subscribe:stocks", newlyWanted);
 }
 export function unsubscribeTokens(tokens) {
-  const toRemove = tokens.filter((t) => t && subscribedTokens.has(t));
-  if (!toRemove.length) return;
-  toRemove.forEach((t) => subscribedTokens.delete(t));
-  if (socket?.connected) socket.emit("unsubscribe:stocks", toRemove);
+  const released = [];
+  for (const t of tokens) {
+    if (!t || !tokenRefCounts.has(t)) continue;
+    const count = tokenRefCounts.get(t) - 1;
+    if (count <= 0) {
+      tokenRefCounts.delete(t);
+      released.push(t);
+    } else tokenRefCounts.set(t, count);
+  }
+  if (!released.length) return;
+  if (socket?.connected) socket.emit("unsubscribe:stocks", released);
 }
 export function disconnectSocket() {
   if (!socket) return;
   socket.removeAllListeners();
   socket.disconnect();
   socket = null;
-  subscribedTokens.clear();
+  tokenRefCounts.clear();
 }
 if (typeof window !== "undefined") {
-  // The live feed is only meaningful for an authenticated user session; drop
-  // the connection immediately on logout instead of leaving it idling.
+  // Drop the connection once neither an authenticated user nor admin
+  // session remains, instead of leaving it idling with no valid context.
   window.addEventListener("tbk:session", (event) => {
-    if (event.detail.role === "user" && !event.detail.session?.accessToken)
-      disconnectSocket();
+    if (event.detail.role !== "user" && event.detail.role !== "admin") return;
+    if (!resolveAuthToken()) disconnectSocket();
   });
 }

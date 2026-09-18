@@ -29,6 +29,7 @@ const AdminUserDetail = lazy(() =>
   })),
 );
 const AdminStocks = lazy(() => import("../pages/admin/Stocks"));
+const AdminInstruments = lazy(() => import("../pages/admin/Instruments"));
 const AdminLeaderboard = lazy(() => import("../pages/admin/Leaderboard"));
 const AdminSettings = lazy(() => import("../pages/admin/Settings"));
 const AdminOrders = lazy(() => import("../pages/admin/Orders"));
@@ -89,6 +90,7 @@ export default function AppRoutes() {
               ["/admin/users", AdminUsers],
               ["/admin/users/:id", AdminUserDetail],
               ["/admin/stocks", AdminStocks],
+              ["/admin/instruments", AdminInstruments],
               ["/admin/orders", AdminOrders],
               ["/admin/leaderboard", AdminLeaderboard],
               ["/admin/settings", AdminSettings],

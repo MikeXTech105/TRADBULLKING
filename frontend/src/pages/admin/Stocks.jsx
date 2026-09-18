@@ -12,7 +12,11 @@ import {
 } from "@mui/material";
 import { Plus, RefreshCw, Search } from "lucide-react";
 import { useQuery, useDebounce } from "../../hooks/useQuery";
-import { adminService } from "../../services/adminService";
+import {
+  adminService,
+  PROVIDER_EXCHANGES,
+  PROVIDER_INSTRUMENT_TYPES,
+} from "../../services/adminService";
 import { errorMessage } from "../../services/api";
 import { store, invalidate } from "../../store/store";
 import {
@@ -24,15 +28,6 @@ import {
 } from "../../components/DataView";
 import { QueryState, Notice } from "../../components/Feedback";
 import { formatINR } from "../../utils/format";
-const PROVIDER_EXCHANGES = ["NSE", "BSE", "NFO", "MCX", "CDS"];
-const PROVIDER_INSTRUMENT_TYPES = [
-  "EQ",
-  "FUTSTK",
-  "OPTSTK",
-  "FUTIDX",
-  "OPTIDX",
-  "AMXIDX",
-];
 function InstrumentPicker({ onPick, onClose }) {
   const [search, setSearch] = useState("");
   const q = useDebounce(search);
@@ -97,9 +92,9 @@ function InstrumentPicker({ onPick, onClose }) {
               setPage(1);
             }}
           >
-            {PROVIDER_INSTRUMENT_TYPES.map((x) => (
-              <MenuItem key={x} value={x}>
-                {x}
+            {PROVIDER_INSTRUMENT_TYPES.map((t) => (
+              <MenuItem key={t.value} value={t.value}>
+                {t.label}
               </MenuItem>
             ))}
           </TextField>
@@ -111,32 +106,27 @@ function InstrumentPicker({ onPick, onClose }) {
           emptyText="Try a different search term, exchange, or instrument type."
         >
           <ul className="provider-results">
-            {(query.data?.rows ?? []).map((r, i) => {
-              const symbol = r.tradingsymbol ?? r.symbol ?? r.name;
-              const token = r.symboltoken ?? r.token;
-              const exch = r.exch_seg ?? r.exchange ?? exchange;
-              return (
-                <li key={token ?? i}>
-                  <button
-                    type="button"
-                    className="provider-result-row"
-                    onClick={() =>
-                      onPick({
-                        symbol,
-                        token,
-                        exchange: exch,
-                        name: r.name ?? symbol,
-                      })
-                    }
-                  >
-                    <strong>{symbol ?? "Instrument"}</strong>
-                    <span>
-                      {exch} · {token ?? "—"}
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
+            {(query.data?.rows ?? []).map((r, i) => (
+              <li key={r.token || i}>
+                <button
+                  type="button"
+                  className="provider-result-row"
+                  onClick={() =>
+                    onPick({
+                      symbol: r.symbol,
+                      token: r.token,
+                      exchange: r.exchange ?? exchange,
+                      name: r.name ?? r.symbol,
+                    })
+                  }
+                >
+                  <strong>{r.symbol ?? "Instrument"}</strong>
+                  <span>
+                    {r.exchange ?? exchange} · {r.token || "—"}
+                  </span>
+                </button>
+              </li>
+            ))}
           </ul>
         </QueryState>
         <Pagination page={page} onChange={setPage} data={query.data} />
@@ -147,7 +137,7 @@ function InstrumentPicker({ onPick, onClose }) {
     </Dialog>
   );
 }
-function StockForm({ stock, onClose }) {
+export function StockForm({ stock, onClose }) {
   const edit = Boolean(stock?.id);
   const lock = useRef(false);
   const [values, setValues] = useState(
@@ -157,7 +147,15 @@ function StockForm({ stock, onClose }) {
           high52: stock.high52 ?? "",
           low52: stock.low52 ?? "",
         }
-      : { symbol: "", token: "", exchange: "NSE", name: "", exchangeType: 1 },
+      : {
+          // Prefilled when opened from the Instruments & Symbols catalogue
+          // ("Add to Trading"); empty when opened as a blank Add stock form.
+          symbol: stock?.symbol ?? "",
+          token: stock?.token ?? "",
+          exchange: stock?.exchange ?? "NSE",
+          name: stock?.name ?? "",
+          exchangeType: 1,
+        },
   );
   const [errors, setErrors] = useState({});
   const [error, setError] = useState("");

@@ -48,6 +48,30 @@ export function tokens(data) {
     );
   return { accessToken: source.accessToken, refreshToken: source.refreshToken };
 }
+// AngelOne's instrument master uses its own field names (symboltoken,
+// tradingsymbol, exch_seg, lotsize, ...), distinct from TRADBULLKING's own
+// Stock schema. Normalize once here rather than in every consuming
+// component. A non-positive strike (AngelOne uses -1/0 for non-options) is
+// treated as absent rather than a real value.
+export function normalizeInstrument(row) {
+  if (!row) return row;
+  const strike = Number(row.strike);
+  return {
+    token: String(row.token ?? row.symboltoken ?? ""),
+    symbol: row.tradingsymbol ?? row.symbol ?? row.name,
+    name: row.name,
+    exchange: row.exch_seg ?? row.exchange,
+    instrumenttype: row.instrumenttype || undefined,
+    lotSize: hasNumber(row.lotsize ?? row.lot_size)
+      ? Number(row.lotsize ?? row.lot_size)
+      : undefined,
+    expiry: row.expiry || undefined,
+    strike: hasNumber(strike) && strike > 0 ? strike : undefined,
+    tickSize: hasNumber(row.tick_size ?? row.ticksize)
+      ? Number(row.tick_size ?? row.ticksize)
+      : undefined,
+  };
+}
 export function candles(data) {
   const rows = Array.isArray(data) ? data : data?.candles;
   if (!Array.isArray(rows))

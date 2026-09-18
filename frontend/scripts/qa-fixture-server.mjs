@@ -234,19 +234,44 @@ const server = http.createServer(async (req, res) => {
     path === "/admin/angelone/session"
   )
     result = success({});
-  else if (path === "/admin/angelone/instruments")
+  else if (path === "/admin/angelone/instruments") {
+    const providerInstruments = [
+      {
+        tradingsymbol: "QA-PROVIDER-EQ",
+        symboltoken: "9999",
+        exch_seg: "NSE",
+        name: "QA Provider Instrument",
+        instrumenttype: "EQ",
+      },
+      {
+        tradingsymbol: "QA-PROVIDER-25SEP26-550FUT",
+        symboltoken: "8888",
+        exch_seg: "NFO",
+        name: "QA Provider Futures Instrument",
+        instrumenttype: "FUTSTK",
+        expiry: "2026-09-25",
+        lotsize: "550",
+        strike: "-1",
+      },
+    ];
+    const search = (url.searchParams.get("search") || "").toLowerCase();
+    const exchange = url.searchParams.get("exchange");
+    const instrumenttype = url.searchParams.get("instrumenttype");
+    const filtered = providerInstruments.filter(
+      (r) =>
+        (!search ||
+          r.tradingsymbol.toLowerCase().includes(search) ||
+          r.name.toLowerCase().includes(search) ||
+          r.symboltoken.includes(search)) &&
+        (!exchange || r.exch_seg === exchange) &&
+        (!instrumenttype || r.instrumenttype === instrumenttype),
+    );
     result = list(
-      [
-        {
-          tradingsymbol: "QA-PROVIDER-EQ",
-          symboltoken: "9999",
-          exch_seg: url.searchParams.get("exchange") || "NSE",
-          name: "QA Provider Instrument",
-        },
-      ],
+      filtered,
       Number(url.searchParams.get("page") || 1),
       Number(url.searchParams.get("limit") || 20),
     );
+  }
   else if (path === "/admin/stocks" && req.method === "POST") {
     stocks.push({ ...body, id: `qa-added-${stocks.length}`, isActive: true });
     result = success(stocks.at(-1));
@@ -285,21 +310,33 @@ const server = http.createServer(async (req, res) => {
 // (subscribe:stocks / unsubscribe:stocks -> price:update). Echoes back the
 // SAME static fixture LTP already used above — never randomized — purely to
 // prove the subscribe -> event -> UI wiring, not to simulate market movement.
+const socketPrices = {
+  [stock.token]: {
+    ltp: stock.ltp,
+    change: 1.32,
+    changePercent: stock.changePercent,
+    high: stock.high,
+    low: stock.low,
+    open: stock.open,
+    close: stock.close,
+  },
+  "9999": {
+    ltp: 250.5,
+    change: -2.1,
+    changePercent: -0.83,
+    high: 255,
+    low: 248,
+    open: 253,
+    close: 252.6,
+  },
+};
 const io = new SocketIOServer(server, { cors: { origin: "*" } });
 io.on("connection", (socket) => {
   socket.on("subscribe:stocks", (tokens = []) => {
     for (const token of tokens) {
-      if (token !== stock.token) continue;
-      socket.emit("price:update", {
-        token: stock.token,
-        ltp: stock.ltp,
-        change: stock.change ?? 1.32,
-        changePercent: stock.changePercent,
-        high: stock.high,
-        low: stock.low,
-        open: stock.open,
-        close: stock.close,
-      });
+      const price = socketPrices[token];
+      if (!price) continue;
+      socket.emit("price:update", { token, ...price });
     }
   });
 });
