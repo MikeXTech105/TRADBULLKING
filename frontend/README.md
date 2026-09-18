@@ -58,3 +58,9 @@ No endpoint is documented for platform-wide admin orders, arbitrary system setti
 ## Light workspace redesign
 
 The user and admin panels now share the COSMOS-reference layout: navy navigation, a compact white header, pale gray workspace, white bordered cards and compact tables. `src/designTokens.js` is the palette/radius/spacing reference, `src/theme.js` applies it to MUI and `src/index.css` holds the consolidated desktop/mobile styles. `WorkspaceChrome.jsx` shares sidebar/header structure, `DataView.jsx` shares headings/metrics/status/table behavior, and `RowActions.jsx` shares compact admin action menus. See `docs/REDESIGN_QA.md` for the seven-size responsive matrix and current redesign validation, including backend limitations.
+
+## Official branding assets
+
+`public/branding/tradbullking-logo-full.png` and `tradbullking-logo-transparent.png` are unmodified copies of the supplied September 18 brand assets (source/copy SHA-256 hashes match). `src/components/Brand.jsx` centrally selects the full logo for auth, loading and membership, and the transparent logo for user/admin workspace headers and navigation. White backing preserves the original dark wordmark on navy sidebars. Images retain their aspect ratio; plain TRADBULLKING text appears only after an image-load failure. No logo filters or redesigned artwork are used.
+
+Branding checks: login/signup/admin login and user/admin overview/membership at 375×812, 768×1024 and 1440×900; all visible images loaded, contain scaling retained and no horizontal overflow. The isolated workspace QA console reported no warnings/errors. Production build passed after asset integration.

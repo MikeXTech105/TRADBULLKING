@@ -10,7 +10,7 @@ import {
   Search,
   UserRound,
 } from "lucide-react";
-import { Brand } from "./AuthLayout";
+import Brand from "./Brand";
 import { formatINR } from "../utils/format";
 export function WorkspaceSidebar({
   links,
@@ -23,7 +23,7 @@ export function WorkspaceSidebar({
   return (
     <aside className="app-sidebar">
       <div className="sidebar-brand">
-        <Brand admin={admin} />
+        <Brand admin={admin} variant="transparent" />
         <span>TRADE SMARTER — TRADE HIGHER</span>
       </div>
       <label className="menu-search">
@@ -103,7 +103,7 @@ export function WorkspaceHeader({
         </IconButton>
       )}
       <div className="header-brand">
-        <Brand admin={admin} />
+        <Brand admin={admin} variant="transparent" />
       </div>
       <div className="header-breadcrumb">
         <Link

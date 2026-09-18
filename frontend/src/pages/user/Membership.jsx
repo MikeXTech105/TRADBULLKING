@@ -10,6 +10,7 @@ import { store, invalidate } from "../../store/store";
 import { formatINR } from "../../utils/format";
 import { PageHeader } from "../../components/DataView";
 import { SlowNotice } from "../../components/Feedback";
+import { BrandLogo } from "../../components/Brand";
 export default function Membership() {
   const user = useSelector((s) => s.auth.user);
   const pendingKey = `tbk_pending_payment_${user?.id}`;
@@ -116,6 +117,7 @@ export default function Membership() {
       />
       <div className="membership-grid">
         <section className="surface membership-card">
+          <BrandLogo className="membership-brand" />
           <span className="membership-badge">
             <Crown size={15} />
             TRADBULLKING PREMIUM

@@ -104,6 +104,10 @@ input:-webkit-autofill {
   display: block;
   width: 100%;
   border-radius: 4px;
+  height: auto;
+  object-fit: contain;
+  max-width: 100%;
+  min-width: 0;
 }
 .sidebar-brand .brand {
   width: 192px;
@@ -267,7 +271,9 @@ input:-webkit-autofill {
   font-weight: 500;
 }
 .header-brand {
-  display: none;
+  display: block;
+  width: 156px;
+  flex-shrink: 0;
 }
 .header-account {
   display: flex;
@@ -1438,6 +1444,43 @@ input:-webkit-autofill {
   width: 180px;
   max-width: 100%;
 }
+.sidebar-brand .brand img {
+  background: #ffffff;
+  padding: 6px;
+  border-radius: 6px;
+}
+.brand-panel .brand {
+  width: 250px;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.header-brand .brand {
+  width: 156px;
+}
+.header-brand .admin-label {
+  display: none;
+}
+.loading-brand {
+  display: block;
+  width: 240px;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto 24px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+.membership-brand {
+  display: block;
+  width: 280px;
+  max-width: 100%;
+  height: auto;
+  margin: 0 0 20px;
+  object-fit: contain;
+}
+.brand-fallback {
+  font-size: 16px;
+  letter-spacing: -0.3px;
+}
 @media (min-width: 1920px) {
   .content-wrap {
     max-width: 1680px;
@@ -1512,6 +1555,7 @@ input:-webkit-autofill {
   }
   .header-brand .brand img {
     width: 136px;
+    height: auto;
   }
   .header-brand .admin-label {
     display: none;

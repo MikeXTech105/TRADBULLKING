@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import { getProfile } from "../services/authService";
 import { readSession } from "../services/session";
 import { QueryState } from "./Feedback";
+import { BrandLogo } from "./Brand";
 export default function ProtectedRoute({ role }) {
   const user = useSelector((state) => state.auth[role]);
   const authenticated = Boolean(readSession(role)?.accessToken);
@@ -34,6 +35,7 @@ export default function ProtectedRoute({ role }) {
   if (state.loading || state.error)
     return (
       <div className="session-check">
+        <BrandLogo className="loading-brand" />
         <QueryState
           query={{ ...state, retry: () => setAttempt((n) => n + 1) }}
         />

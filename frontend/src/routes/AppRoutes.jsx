@@ -5,6 +5,7 @@ import AdminProtectedRoute from "../components/AdminProtectedRoute";
 import UserLayout from "../layouts/UserLayout";
 import AdminLayout from "../layouts/AdminLayout";
 import { Skeleton } from "@mui/material";
+import { BrandLogo } from "../components/Brand";
 const Login = lazy(() => import("../pages/auth/Login"));
 const Signup = lazy(() => import("../pages/auth/Signup"));
 const AdminLogin = lazy(() => import("../pages/admin/AdminLogin"));
@@ -49,6 +50,7 @@ export default function AppRoutes() {
     <Suspense
       fallback={
         <div className="route-loading">
+          <BrandLogo className="loading-brand" />
           <Skeleton height={65} />
           <Skeleton variant="rounded" height={250} />
         </div>

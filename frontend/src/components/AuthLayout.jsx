@@ -1,29 +1,6 @@
-import { useState } from "react";
+import Brand from "./Brand";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, ShieldCheck, LockKeyhole } from "lucide-react";
-export function Brand({ admin = false }) {
-  const [failed, setFailed] = useState(false);
-  return (
-    <Link
-      className="brand"
-      to={admin ? "/admin/login" : "/login"}
-      aria-label={admin ? "TRADBULLKING ADMIN" : "TRADBULLKING"}
-    >
-      {failed ? (
-        <strong>
-          TRAD<span>BULL</span>KING
-        </strong>
-      ) : (
-        <img
-          src="/logo.png"
-          alt="TRADBULLKING"
-          onError={() => setFailed(true)}
-        />
-      )}{" "}
-      {admin && <span className="admin-label">ADMIN</span>}
-    </Link>
-  );
-}
 export default function AuthLayout({
   children,
   admin = false,
