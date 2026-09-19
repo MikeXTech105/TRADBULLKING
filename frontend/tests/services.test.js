@@ -26,6 +26,7 @@ import {
   loginAdmin,
   signupUser,
   getProfile,
+  signupFailure,
   validateSignup,
 } from "../src/services/authService.js";
 import { orderPayload, orderService } from "../src/services/orderService.js";
@@ -34,6 +35,12 @@ import { watchlistService } from "../src/services/watchlistService.js";
 import { paymentService } from "../src/services/paymentService.js";
 import { adminService } from "../src/services/adminService.js";
 import { formatINR, formatPercent, formatPnl } from "../src/utils/format.js";
+import {
+  avatarInitial,
+  formatUserName,
+  normalizeUserName,
+  publicUserLabel,
+} from "../src/utils/identity.js";
 import {
   showToast,
   subscribeToasts,
@@ -81,6 +88,8 @@ const tokenPair = {
 const user = {
   id: "fixture-user",
   name: "QA User",
+  userName: "qa_user",
+  referralCode: "TBKX3A9Z",
   role: "user",
   isActive: true,
 };
@@ -237,15 +246,23 @@ test("real login/register payloads and profile verification do not persist passw
     Promise.resolve(response(config, { success: true, data: user }));
   await signupUser({
     name: " QA User ",
+    userName: " @QA_User ",
     email: "qa@example.com",
     phone: "",
     password: "test-password",
     confirmPassword: "test-password",
+    referralCode: " TBKX3A9Z ",
     acceptedTerms: true,
   });
   assert.deepEqual(payloads[0], [
     "/auth/register",
-    { name: "QA User", email: "qa@example.com", password: "test-password" },
+    {
+      name: "QA User",
+      userName: "qa_user",
+      email: "qa@example.com",
+      password: "test-password",
+      referralCode: "TBKX3A9Z",
+    },
   ]);
   assert.ok(readSession("user"));
   assert.ok(!JSON.stringify([...sessionStorage.map]).includes("test-password"));
@@ -263,6 +280,7 @@ test("real login/register payloads and profile verification do not persist passw
   assert.ok(readSession("user"));
   const invalidSignup = validateSignup({
       name: "",
+      userName: "bad user!",
       email: "x",
       phone: "x",
       password: "x",
@@ -270,6 +288,7 @@ test("real login/register payloads and profile verification do not persist passw
       acceptedTerms: false,
     });
   assert.ok(invalidSignup.name);
+  assert.ok(invalidSignup.userName);
   assert.equal(
     invalidSignup.acceptedTerms,
     "You must accept the Terms & Conditions to continue.",
@@ -277,6 +296,7 @@ test("real login/register payloads and profile verification do not persist passw
   await assert.rejects(
     signupUser({
       name: "QA User",
+      userName: "qa_user",
       email: "qa@example.com",
       phone: "",
       password: "test-password",
@@ -506,24 +526,86 @@ test("central toast service deduplicates messages and replaces loading toasts", 
 test("signup legal-page draft preserves safe fields and never stores passwords", () => {
   saveSignupDraft({
     name: "Draft User",
+    userName: "draft_user",
     email: "draft@example.com",
     phone: "9876543210",
+    referralCode: "TBKX3A9Z",
     password: "must-not-persist",
     confirmPassword: "must-not-persist",
     acceptedTerms: true,
   });
   assert.deepEqual(readSignupDraft(), {
     name: "Draft User",
+    userName: "draft_user",
     email: "draft@example.com",
     phone: "9876543210",
+    referralCode: "TBKX3A9Z",
     acceptedTerms: true,
   });
   assert.ok(!sessionStorage.getItem("tbk_signup_draft").includes("must-not-persist"));
   clearSignupDraft();
   assert.deepEqual(readSignupDraft(), {
     name: "",
+    userName: "",
     email: "",
     phone: "",
+    referralCode: "",
     acceptedTerms: false,
   });
+});
+
+test("username identity formatting and registration errors are safe for legacy users", () => {
+  assert.equal(normalizeUserName(" @Sahil_Jayani "), "sahil_jayani");
+  assert.equal(formatUserName("Sahil_Jayani"), "@sahil_jayani");
+  assert.equal(publicUserLabel({ userName: "trader_1", name: "Private Name" }), "@trader_1");
+  assert.equal(publicUserLabel({ name: "Legacy Trader" }), "Legacy Trader");
+  assert.equal(publicUserLabel({ email: "private@example.com" }), "Trader");
+  assert.equal(avatarInitial({ userName: "sahil" }), "S");
+  const validSignup = {
+    name: "QA User",
+    userName: "abc",
+    email: "qa@example.com",
+    phone: "",
+    password: "secret1",
+    confirmPassword: "secret1",
+    acceptedTerms: true,
+  };
+  assert.equal(validateSignup(validSignup).userName, undefined);
+  assert.ok(validateSignup({ ...validSignup, userName: "" }).userName);
+  assert.ok(validateSignup({ ...validSignup, userName: "ab" }).userName);
+  assert.equal(validateSignup({ ...validSignup, userName: "a".repeat(30) }).userName, undefined);
+  assert.ok(validateSignup({ ...validSignup, userName: "a".repeat(31) }).userName);
+  assert.ok(validateSignup({ ...validSignup, userName: "bad-name" }).userName);
+  assert.deepEqual(
+    signupFailure({
+      response: { status: 409, data: { message: "Email or username already taken" } },
+    }),
+    {
+      fieldErrors: {
+        userName:
+          "Email or username is already in use. Please try a different username or email.",
+        email:
+          "Email or username is already in use. Please try a different username or email.",
+      },
+      focus: "userName",
+      message:
+        "Email or username is already in use. Please try a different username or email.",
+    },
+  );
+  const validation = signupFailure({
+    response: {
+      status: 422,
+      data: { errors: [{ path: ["userName"], message: "Username format is invalid." }] },
+    },
+  });
+  assert.equal(validation.fieldErrors.userName, "Username format is invalid.");
+  assert.equal(
+    signupFailure({
+      response: {
+        status: 409,
+        data: { errors: [{ field: "userName", message: "Already exists" }] },
+      },
+    }).message,
+    "Username is already taken. Please choose another username.",
+  );
 });

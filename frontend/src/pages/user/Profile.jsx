@@ -26,6 +26,10 @@ import PasswordField from "../../components/PasswordField";
 import InstallAppPrompt from "../../components/InstallAppPrompt";
 import { usePWAInstall } from "../../hooks/usePWAInstall";
 import { formatDate } from "../../utils/format";
+import {
+  avatarInitial,
+  formatUserName,
+} from "../../utils/identity";
 export default function Profile({ admin = false }) {
   const role = admin ? "admin" : "user";
   const navigate = useNavigate();
@@ -162,6 +166,15 @@ export default function Profile({ admin = false }) {
           </section>
         )}
         <section className="surface">
+          <div className="account-identity">
+            <span className="account-identity-avatar">
+              {avatarInitial(user) || "U"}
+            </span>
+            <div>
+              <strong>{user?.name || "User"}</strong>
+              <span>{formatUserName(user?.userName) || "Username unavailable"}</span>
+            </div>
+          </div>
           <div className="section-heading">
             <h2>Personal details</h2>
             <span>{user?.role}</span>
@@ -174,6 +187,16 @@ export default function Profile({ admin = false }) {
                 onChange={(e) => setValues({ ...values, name: e.target.value })}
                 error={Boolean(errors.name)}
                 helperText={errors.name}
+              />
+              <TextField
+                label="Username"
+                value={formatUserName(user?.userName)}
+                disabled
+                helperText={
+                  user?.userName
+                    ? "Username cannot be changed."
+                    : "No username is available for this legacy account."
+                }
               />
               <TextField
                 label="Email"
@@ -208,6 +231,10 @@ export default function Profile({ admin = false }) {
             <h2>Account & access</h2>
           </div>
           <dl className="detail-list">
+            <div>
+              <dt>Referral code</dt>
+              <dd>{user?.referralCode || "—"}</dd>
+            </div>
             <div>
               <dt>Membership</dt>
               <dd>

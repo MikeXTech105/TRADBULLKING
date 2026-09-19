@@ -7,6 +7,8 @@ import {
   ChartNoAxesCombined,
   ClipboardList,
   Layers,
+  PieChart,
+  Menu as MenuIcon,
   BriefcaseBusiness,
   Trophy,
   Wallet,
@@ -36,12 +38,14 @@ const navigation = [
   ["/profile", "Account", UserRound],
 ];
 const mobile = [
-  ["/watchlist", "Watchlist", List],
-  ["/market", "Trades", ChartNoAxesCombined],
-  ["/positions", "Positions", Layers],
-  ["/leaderboard", "Leaderboard", Trophy],
-  ["/profile", "Account", UserRound],
+  ["/watchlist", "Watchlist", ChartNoAxesCombined],
+  ["/orders", "Trades", ClipboardList],
+  ["/positions", "Position", PieChart],
+  ["/profile", "Accounts", UserRound],
+  ["/more", "More", MenuIcon],
 ];
+// Screens that draw their own header on phones (see mobile.css).
+const ownHeader = ["/watchlist", "/orders", "/positions", "/profile", "/report", "/more"];
 export default function UserLayout() {
   useEffect(() => {
     let running = false;
@@ -72,7 +76,9 @@ export default function UserLayout() {
     navigate("/login", { replace: true });
   };
   return (
-    <div className="app-shell">
+    <div
+      className={`app-shell ${ownHeader.includes(pathname) ? "m-screen" : ""}`}
+    >
       <WorkspaceSidebar links={navigation} user={user} onLogout={logout} />
       <div className="app-main">
         <WorkspaceHeader links={navigation} user={user} onLogout={logout} />
@@ -94,12 +100,16 @@ export default function UserLayout() {
             key={to}
             to={to}
             className={({ isActive }) =>
-              isActive || (to === "/market" && pathname.startsWith("/trade/"))
+              isActive ||
+              (to === "/watchlist" &&
+                (pathname === "/market" || pathname.startsWith("/trade/")))
                 ? "active"
                 : ""
             }
           >
-            <Icon size={19} />
+            <span className="bn-icon">
+              <Icon size={19} />
+            </span>
             <span>{label}</span>
           </NavLink>
         ))}

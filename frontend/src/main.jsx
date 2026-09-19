@@ -6,6 +6,7 @@ import App from "./App";
 import { theme } from "./theme";
 import { cssVariables } from "./designTokens";
 import "./index.css";
+import "./mobile.css";
 import { Provider } from "react-redux";
 import { store } from "./store/store";
 import ToastProvider from "./components/ToastProvider";
