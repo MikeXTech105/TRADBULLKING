@@ -19,6 +19,7 @@ import { QueryState } from "../../components/Feedback";
 import { toastError, toastSuccess } from "../../services/toastService";
 import { formatINR, formatDate } from "../../utils/format";
 import ServerMetrics from "../../components/ServerMetrics";
+import { formatUserName } from "../../utils/identity";
 export default function Users() {
   const [search, setSearch] = useState("");
   const q = useDebounce(search);
@@ -40,14 +41,19 @@ export default function Users() {
   const columns = [
     {
       key: "name",
-      label: "User",
+      label: "Full Name",
       render: (r) => (
         <span className="instrument-cell">
-          <strong>{r.name}</strong>
-          <small>{r.email}</small>
+          <strong>{r.name || "—"}</strong>
         </span>
       ),
     },
+    {
+      key: "userName",
+      label: "Username",
+      render: (r) => <span className="identity-label">{formatUserName(r.userName) || "—"}</span>,
+    },
+    { key: "email", label: "Email" },
     { key: "phone", label: "Phone" },
     {
       key: "isActive",
@@ -191,7 +197,10 @@ export function UserDetail() {
       <PageHeader
         eyebrow="USER DETAIL"
         title={user?.name ?? "User details"}
-        description="Account information and server-calculated performance."
+        description={
+          formatUserName(user?.userName) ||
+          "Account information and server-calculated performance."
+        }
         action={
           <Button
             disabled={!user || query.loading}
@@ -216,13 +225,18 @@ export function UserDetail() {
           <dl className="detail-list">
             {[
               ["name", "Name"],
+              ["userName", "Username"],
               ["email", "Email"],
               ["phone", "Phone"],
               ["role", "Role"],
             ].map(([key, label]) => (
               <div key={key}>
                 <dt>{label}</dt>
-                <dd>{user?.[key] ?? "—"}</dd>
+                <dd>
+                  {key === "userName"
+                    ? formatUserName(user?.userName) || "—"
+                    : user?.[key] ?? "—"}
+                </dd>
               </div>
             ))}
             <div>

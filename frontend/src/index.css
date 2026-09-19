@@ -925,6 +925,46 @@ input:-webkit-autofill {
   text-align: right;
   overflow-wrap: anywhere;
 }
+.identity-label {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.account-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  min-width: 0;
+}
+.account-identity-avatar {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 50%;
+  background: #eef0ff;
+  color: var(--blue);
+  font-weight: 750;
+}
+.account-identity > div {
+  min-width: 0;
+}
+.account-identity strong,
+.account-identity span:not(.account-identity-avatar) {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.account-identity span:not(.account-identity-avatar) {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 3px;
+}
 .total-row {
   font-weight: 700;
 }
@@ -2504,5 +2544,66 @@ input:-webkit-autofill {
   }
   .live-news-button .MuiButton-endIcon {
     display: none;
+  }
+}
+
+.prize-banner .section-heading h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.prize-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+.prize-list li {
+  border: 1px solid var(--border);
+  border-radius: var(--control-radius);
+  padding: 10px;
+  text-align: center;
+}
+.prize-list li span {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+}
+.prize-list li strong {
+  font-size: 16px;
+  color: var(--green);
+}
+.prize-cta {
+  margin: 14px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+.prize-chip {
+  background: #e7f6ef;
+  color: var(--green);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.prize-amount {
+  color: var(--green);
+}
+@media (max-width: 767px) {
+  .prize-list {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .prize-list li {
+    padding: 8px 2px;
+  }
+  .prize-list li strong {
+    font-size: 12px;
   }
 }

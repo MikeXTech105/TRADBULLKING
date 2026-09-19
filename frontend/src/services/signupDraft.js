@@ -5,12 +5,22 @@ export function readSignupDraft() {
     const value = JSON.parse(globalThis.sessionStorage?.getItem(KEY) || "{}");
     return {
       name: typeof value.name === "string" ? value.name : "",
+      userName: typeof value.userName === "string" ? value.userName : "",
       email: typeof value.email === "string" ? value.email : "",
       phone: typeof value.phone === "string" ? value.phone : "",
+      referralCode:
+        typeof value.referralCode === "string" ? value.referralCode : "",
       acceptedTerms: value.acceptedTerms === true,
     };
   } catch {
-    return { name: "", email: "", phone: "", acceptedTerms: false };
+    return {
+      name: "",
+      userName: "",
+      email: "",
+      phone: "",
+      referralCode: "",
+      acceptedTerms: false,
+    };
   }
 }
 
@@ -19,8 +29,10 @@ export function saveSignupDraft(values) {
     KEY,
     JSON.stringify({
       name: values.name || "",
+      userName: values.userName || "",
       email: values.email || "",
       phone: values.phone || "",
+      referralCode: values.referralCode || "",
       acceptedTerms: values.acceptedTerms === true,
     }),
   );

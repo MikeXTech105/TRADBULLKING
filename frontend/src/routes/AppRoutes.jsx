@@ -6,21 +6,32 @@ import UserLayout from "../layouts/UserLayout";
 import AdminLayout from "../layouts/AdminLayout";
 import { Skeleton } from "@mui/material";
 import { BrandLogo } from "../components/Brand";
+import { responsive } from "../mobile/responsive";
 const Login = lazy(() => import("../pages/auth/Login"));
 const Signup = lazy(() => import("../pages/auth/Signup"));
 const AdminLogin = lazy(() => import("../pages/admin/AdminLogin"));
 const Dashboard = lazy(() => import("../pages/user/Dashboard"));
 const Market = lazy(() => import("../pages/user/Market"));
-const Watchlist = lazy(() => import("../pages/user/Watchlist"));
+const DesktopWatchlist = lazy(() => import("../pages/user/Watchlist"));
+const MobileWatchlist = lazy(() => import("../mobile/Watchlist"));
+const MobileTrades = lazy(() => import("../mobile/Trades"));
+const MobilePortfolio = lazy(() => import("../mobile/Portfolio"));
+const MobileReport = lazy(() => import("../mobile/Report"));
+const More = lazy(() => import("../mobile/More"));
 const Trade = lazy(() => import("../pages/user/Trade"));
-const Orders = lazy(() => import("../pages/user/Orders"));
-const Positions = lazy(() => import("../pages/user/Positions"));
+const DesktopOrders = lazy(() => import("../pages/user/Orders"));
+const DesktopPositions = lazy(() => import("../pages/user/Positions"));
+const Watchlist = responsive(DesktopWatchlist, MobileWatchlist);
+const Orders = responsive(DesktopOrders, MobileTrades);
+const Positions = responsive(DesktopPositions, MobilePortfolio);
 const Portfolio = lazy(() => import("../pages/user/Portfolio"));
 const Leaderboard = lazy(() => import("../pages/user/Leaderboard"));
 const Wallet = lazy(() => import("../pages/user/Wallet"));
 const Membership = lazy(() => import("../pages/user/Membership"));
 const Payments = lazy(() => import("../pages/user/Payments"));
-const Profile = lazy(() => import("../pages/user/Profile"));
+const DesktopProfile = lazy(() => import("../pages/user/Profile"));
+const MobileAccounts = lazy(() => import("../mobile/Accounts"));
+const Profile = responsive(DesktopProfile, MobileAccounts);
 const AdminDashboard = lazy(() => import("../pages/admin/AdminDashboard"));
 const AdminUsers = lazy(() => import("../pages/admin/Users"));
 const AdminUserDetail = lazy(() =>
@@ -83,6 +94,8 @@ export default function AppRoutes() {
               ["/membership", Membership],
               ["/payments", Payments],
               ["/profile", Profile],
+              ["/report", MobileReport],
+              ["/more", More],
             ].map(([path, Page]) => (
               <Route key={path} path={path} element={<Page />} />
             ))}

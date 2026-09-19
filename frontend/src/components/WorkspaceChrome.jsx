@@ -13,6 +13,7 @@ import {
 import Brand from "./Brand";
 import LiveNewsMenu from "./LiveNewsMenu";
 import { formatINR } from "../utils/format";
+import { avatarInitial, formatUserName } from "../utils/identity";
 export function WorkspaceSidebar({
   links,
   user,
@@ -62,11 +63,14 @@ export function WorkspaceSidebar({
           onClick={onNavigate}
         >
           <span className="sidebar-avatar">
-            {user?.name?.slice(0, 1).toUpperCase() || <UserRound size={18} />}
+            {avatarInitial(user) || <UserRound size={18} />}
           </span>
           <span>
             <strong>{user?.name || "Your account"}</strong>
-            <small>{admin ? "Administrator" : "Paper trading account"}</small>
+            <small>
+              {formatUserName(user?.userName) ||
+                (admin ? "Administrator" : "Paper trading account")}
+            </small>
           </span>
         </Link>
         <button className="sidebar-logout" onClick={onLogout}>
@@ -132,13 +136,16 @@ export function WorkspaceHeader({
           onClick={(e) => setAnchor(e.currentTarget)}
         >
           <Avatar className="avatar">
-            {user?.name?.slice(0, 1).toUpperCase() || <UserRound size={18} />}
+            {avatarInitial(user) || <UserRound size={18} />}
           </Avatar>
           <span>
             <strong>
               {user?.name || (admin ? "Administrator" : "Your account")}
             </strong>
-            <small>{admin ? "Administrator" : "Paper trading account"}</small>
+            <small>
+              {formatUserName(user?.userName) ||
+                (admin ? "Administrator" : "Paper trading account")}
+            </small>
           </span>
           <ChevronDown size={16} />
         </button>

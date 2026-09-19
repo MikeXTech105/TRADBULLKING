@@ -13,3 +13,7 @@ export const PLATFORM_OFFERING = {
   activatedVirtualBalance: 50000000,
   tradeFee: 2,
 };
+
+// Leaderboard winner prizes in INR, by rank (1st to 5th).
+export const LEADERBOARD_PRIZES = [2000, 1500, 1000, 500, 250];
+export const prizeForRank = (rank) => LEADERBOARD_PRIZES[Number(rank) - 1];

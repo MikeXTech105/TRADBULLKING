@@ -5,8 +5,12 @@ import { ArrowRight, UserPlus } from "lucide-react";
 import AuthLayout from "../../components/AuthLayout";
 import PasswordField from "../../components/PasswordField";
 import { SlowNotice } from "../../components/Feedback";
-import { signupUser, validateSignup } from "../../services/authService";
-import { errorMessage } from "../../services/api";
+import {
+  signupFailure,
+  signupUser,
+  validateSignup,
+} from "../../services/authService";
+import { normalizeUserName } from "../../utils/identity";
 import { toastError, toastSuccess } from "../../services/toastService";
 import {
   clearSignupDraft,
@@ -16,15 +20,18 @@ import {
 export default function Signup() {
   const navigate = useNavigate();
   const busy = useRef(false);
+  const fieldRefs = useRef({});
   const [values, setValues] = useState(() => {
     const draft = readSignupDraft();
     return {
-    name: draft.name || "",
-    email: draft.email || "",
-    phone: draft.phone || "",
-    password: "",
-    confirmPassword: "",
-    acceptedTerms: draft.acceptedTerms === true,
+      name: draft.name || "",
+      userName: draft.userName || "",
+      email: draft.email || "",
+      phone: draft.phone || "",
+      password: "",
+      confirmPassword: "",
+      referralCode: draft.referralCode || "",
+      acceptedTerms: draft.acceptedTerms === true,
     };
   });
   const [errors, setErrors] = useState({});
@@ -51,8 +58,14 @@ export default function Signup() {
       toastSuccess("Account created successfully.", { id: "account-created" });
       navigate("/dashboard", { replace: true });
     } catch (err) {
-      const message = errorMessage(err, "Unable to create account.");
-      toastError(message, { id: "account-created" });
+      const failure = signupFailure(err);
+      setErrors((previous) => ({ ...previous, ...failure.fieldErrors }));
+      const input = fieldRefs.current[failure.focus];
+      if (input) {
+        input.focus();
+        input.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      toastError(failure.message, { id: "account-created" });
     } finally {
       busy.current = false;
       setSubmitting(false);
@@ -80,29 +93,53 @@ export default function Signup() {
             error={Boolean(errors.name)}
             helperText={errors.name}
           />
-          <div className="field-row">
-            <TextField
-              label="Phone (optional)"
-              name="phone"
-              type="tel"
-              autoComplete="tel"
-              value={values.phone}
-              onChange={change}
-              error={Boolean(errors.phone)}
-              helperText={errors.phone}
-            />
-            <TextField
-              label="Email"
-              name="email"
-              type="email"
-              required
-              autoComplete="email"
-              value={values.email}
-              onChange={change}
-              error={Boolean(errors.email)}
-              helperText={errors.email}
-            />
-          </div>
+          <TextField
+            label="Username"
+            name="userName"
+            required
+            autoComplete="username"
+            placeholder="Choose a unique username"
+            value={values.userName}
+            onChange={change}
+            onBlur={() =>
+              setValues((previous) => ({
+                ...previous,
+                userName: normalizeUserName(previous.userName),
+              }))
+            }
+            inputRef={(input) => {
+              fieldRefs.current.userName = input;
+            }}
+            error={Boolean(errors.userName)}
+            helperText={
+              errors.userName ||
+              "Your public identity · 3–30 lowercase letters, numbers, or underscores"
+            }
+          />
+          <TextField
+            label="Email"
+            name="email"
+            type="email"
+            required
+            autoComplete="email"
+            value={values.email}
+            onChange={change}
+            inputRef={(input) => {
+              fieldRefs.current.email = input;
+            }}
+            error={Boolean(errors.email)}
+            helperText={errors.email}
+          />
+          <TextField
+            label="Phone (optional)"
+            name="phone"
+            type="tel"
+            autoComplete="tel"
+            value={values.phone}
+            onChange={change}
+            error={Boolean(errors.phone)}
+            helperText={errors.phone}
+          />
           <PasswordField
             label="Password"
             name="password"
@@ -121,6 +158,15 @@ export default function Signup() {
             value={values.confirmPassword}
             onChange={change}
             error={errors.confirmPassword}
+          />
+          <TextField
+            label="Referral Code (optional)"
+            name="referralCode"
+            autoComplete="off"
+            value={values.referralCode}
+            onChange={change}
+            error={Boolean(errors.referralCode)}
+            helperText={errors.referralCode}
           />
         </div>
         <div
