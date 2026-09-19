@@ -1,15 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { usePWAInstall } from "../hooks/usePWAInstall";
 import InstallAppPrompt from "./InstallAppPrompt";
-import { Notice } from "./Feedback";
 import { subscribe, wasJustInstalled } from "../services/pwaInstall";
+import { toastSuccess } from "../services/toastService";
 
 const SHOW_DELAY_MS = 3000;
 
 export default function InstallPromptController() {
   const { status, canPromote, install, dismiss } = usePWAInstall();
   const [open, setOpen] = useState(false);
-  const [notice, setNotice] = useState(null);
   const shown = useRef(false);
 
   useEffect(() => {
@@ -30,7 +29,9 @@ export default function InstallPromptController() {
       subscribe(() => {
         if (wasJustInstalled()) {
           setOpen(false);
-          setNotice({ message: "TRADBULLKING installed successfully." });
+          toastSuccess("TRADBULLKING installed successfully.", {
+            id: "pwa-installed",
+          });
         }
       }),
     [],
@@ -56,7 +57,6 @@ export default function InstallPromptController() {
           }}
         />
       )}
-      <Notice notice={notice} onClose={() => setNotice(null)} />
     </>
   );
 }

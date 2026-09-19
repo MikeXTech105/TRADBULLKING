@@ -1,5 +1,6 @@
 import { hasNumber } from "../utils/format.js";
 import { registerInstrument } from "./instrumentRegistry.js";
+import { validStockId } from "./stockIdentity.js";
 export function unwrap(response) {
   const body = response.data;
   if (body?.success === false)
@@ -31,11 +32,29 @@ export function collection(data, key) {
     );
   const pagination = data?.pagination ?? {};
   return {
-    rows: rows.map(identify),
+    rows: rows.map(key === "stocks" ? tradingStock : identify),
     total: pagination.total ?? data?.total ?? pagination.totalItems,
     page: pagination.page ?? data?.page ?? 1,
     totalPages: pagination.pages ?? pagination.totalPages ?? data?.totalPages,
   };
+}
+export function tradingStock(row) {
+  if (!row) return row;
+  const nested =
+    row.stock && typeof row.stock === "object"
+      ? row.stock
+      : row.stockId && typeof row.stockId === "object"
+        ? row.stockId
+        : null;
+  const source = nested ? { ...row, ...nested } : row;
+  const candidates = nested
+    ? [nested.id, nested._id, row.stockId]
+    : [row.id, row._id, row.stockId];
+  const id = candidates.find(validStockId);
+  return identify({
+    ...source,
+    id: id === undefined ? undefined : String(id).trim(),
+  });
 }
 export function profile(data) {
   return identify(data?.user ?? data);
@@ -47,6 +66,30 @@ export function tokens(data) {
       "The server did not return access and refresh tokens. Please contact support.",
     );
   return { accessToken: source.accessToken, refreshToken: source.refreshToken };
+}
+// AngelOne's instrument master uses its own field names (symboltoken,
+// tradingsymbol, exch_seg, lotsize, ...), distinct from TRADBULLKING's own
+// Stock schema. Normalize once here rather than in every consuming
+// component. A non-positive strike (AngelOne uses -1/0 for non-options) is
+// treated as absent rather than a real value.
+export function normalizeInstrument(row) {
+  if (!row) return row;
+  const strike = Number(row.strike);
+  return {
+    token: String(row.token ?? row.symboltoken ?? ""),
+    symbol: row.tradingsymbol ?? row.symbol ?? row.name,
+    name: row.name,
+    exchange: row.exch_seg ?? row.exchange,
+    instrumenttype: row.instrumenttype || undefined,
+    lotSize: hasNumber(row.lotsize ?? row.lot_size)
+      ? Number(row.lotsize ?? row.lot_size)
+      : undefined,
+    expiry: row.expiry || undefined,
+    strike: hasNumber(strike) && strike > 0 ? strike : undefined,
+    tickSize: hasNumber(row.tick_size ?? row.ticksize)
+      ? Number(row.tick_size ?? row.ticksize)
+      : undefined,
+  };
 }
 export function candles(data) {
   const rows = Array.isArray(data) ? data : data?.candles;

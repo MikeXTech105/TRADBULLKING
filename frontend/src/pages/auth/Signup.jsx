@@ -1,28 +1,41 @@
 import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Alert, Button, TextField } from "@mui/material";
+import { Button, Checkbox, FormHelperText, TextField } from "@mui/material";
 import { ArrowRight, UserPlus } from "lucide-react";
 import AuthLayout from "../../components/AuthLayout";
 import PasswordField from "../../components/PasswordField";
 import { SlowNotice } from "../../components/Feedback";
 import { signupUser, validateSignup } from "../../services/authService";
 import { errorMessage } from "../../services/api";
+import { toastError, toastSuccess } from "../../services/toastService";
+import {
+  clearSignupDraft,
+  readSignupDraft,
+  saveSignupDraft,
+} from "../../services/signupDraft";
 export default function Signup() {
   const navigate = useNavigate();
   const busy = useRef(false);
-  const [values, setValues] = useState({
-    name: "",
-    email: "",
-    phone: "",
+  const [values, setValues] = useState(() => {
+    const draft = readSignupDraft();
+    return {
+    name: draft.name || "",
+    email: draft.email || "",
+    phone: draft.phone || "",
     password: "",
     confirmPassword: "",
+    acceptedTerms: draft.acceptedTerms === true,
+    };
   });
   const [errors, setErrors] = useState({});
-  const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const change = (e) => {
-    setValues({ ...values, [e.target.name]: e.target.value });
-    setErrors({ ...errors, [e.target.name]: "" });
+    const { name, value } = e.target;
+    setValues((previous) => ({ ...previous, [name]: value }));
+    setErrors((previous) => ({ ...previous, [name]: "" }));
+  };
+  const preserveSafeDraft = () => {
+    saveSignupDraft(values);
   };
   async function submit(e) {
     e.preventDefault();
@@ -32,12 +45,14 @@ export default function Signup() {
     if (Object.keys(next).length) return;
     busy.current = true;
     setSubmitting(true);
-    setError("");
     try {
       await signupUser(values);
+      clearSignupDraft();
+      toastSuccess("Account created successfully.", { id: "account-created" });
       navigate("/dashboard", { replace: true });
     } catch (err) {
-      setError(errorMessage(err));
+      const message = errorMessage(err, "Unable to create account.");
+      toastError(message, { id: "account-created" });
     } finally {
       busy.current = false;
       setSubmitting(false);
@@ -108,11 +123,57 @@ export default function Signup() {
             error={errors.confirmPassword}
           />
         </div>
-        {error && (
-          <Alert severity="error" className="form-alert">
-            {error}
-          </Alert>
-        )}
+        <div
+          className={`terms-consent ${errors.acceptedTerms ? "has-error" : ""}`}
+        >
+          <Checkbox
+            id="accepted-terms"
+            checked={values.acceptedTerms}
+            onChange={(e) => {
+              const checked = e.target.checked;
+              setValues((previous) => ({
+                ...previous,
+                acceptedTerms: checked,
+              }));
+              setErrors((previous) => ({
+                ...previous,
+                acceptedTerms: "",
+              }));
+            }}
+            inputProps={{
+              "aria-labelledby": "accepted-terms-label",
+              "aria-describedby": errors.acceptedTerms
+                ? "accepted-terms-error"
+                : undefined,
+            }}
+          />
+          <div>
+            <span id="accepted-terms-label" className="terms-consent-label">
+              I have read and agree to the{" "}
+              <Link
+                to="/terms-and-conditions"
+                state={{ from: "/signup" }}
+                onClick={preserveSafeDraft}
+              >
+                Terms & Conditions
+              </Link>{" "}
+              and{" "}
+              <Link
+                to="/privacy-policy"
+                state={{ from: "/signup" }}
+                onClick={preserveSafeDraft}
+              >
+                Privacy Policy
+              </Link>
+              .
+            </span>
+            {errors.acceptedTerms && (
+              <FormHelperText error id="accepted-terms-error">
+                {errors.acceptedTerms}
+              </FormHelperText>
+            )}
+          </div>
+        </div>
         <SlowNotice busy={submitting} />
         <Button
           className="admin-submit"

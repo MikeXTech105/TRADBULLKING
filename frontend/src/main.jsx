@@ -8,6 +8,7 @@ import { cssVariables } from "./designTokens";
 import "./index.css";
 import { Provider } from "react-redux";
 import { store } from "./store/store";
+import ToastProvider from "./components/ToastProvider";
 
 Object.entries(cssVariables).forEach(([key, value]) =>
   document.documentElement.style.setProperty(key, value),
@@ -18,7 +19,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <BrowserRouter>
-          <App />
+          <ToastProvider>
+            <App />
+          </ToastProvider>
         </BrowserRouter>
       </ThemeProvider>
     </Provider>

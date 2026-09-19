@@ -4,6 +4,11 @@ import { adminService } from "../../services/adminService";
 import { errorMessage } from "../../services/api";
 import PasswordField from "../../components/PasswordField";
 import Profile from "../user/Profile";
+import {
+  toastError,
+  toastLoading,
+  toastSuccess,
+} from "../../services/toastService";
 export default function Settings() {
   const lock = useRef(false);
   const [values, setValues] = useState({
@@ -13,7 +18,6 @@ export default function Settings() {
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   async function submit(e) {
     e.preventDefault();
     if (lock.current) return;
@@ -24,18 +28,18 @@ export default function Settings() {
     lock.current = true;
     setBusy(true);
     setError("");
-    setSuccess("");
+    toastLoading("Connecting to AngelOne…", { id: "angelone-session" });
     try {
       await adminService.angelSession({
         clientId: values.clientId.trim() || undefined,
         password: values.password || undefined,
         totp: values.totp.trim(),
       });
-      setSuccess(
-        "AngelOne session initialized. Check Dashboard for connection status.",
-      );
+      toastSuccess("AngelOne session connected.", { id: "angelone-session" });
     } catch (err) {
-      setError(errorMessage(err));
+      const message = errorMessage(err, "Unable to connect to AngelOne.");
+      setError(message);
+      toastError(message, { id: "angelone-session" });
     } finally {
       setValues((previous) => ({ ...previous, password: "", totp: "" }));
       lock.current = false;
@@ -83,11 +87,6 @@ export default function Settings() {
           {error && (
             <Alert severity="error" className="form-alert">
               {error}
-            </Alert>
-          )}
-          {success && (
-            <Alert severity="success" className="form-alert">
-              {success}
             </Alert>
           )}
           <Button

@@ -78,3 +78,5 @@ The saved OpenAPI document contains every request schema, query parameter, respo
 - Public leaderboard was empty. Real leaderboard ranks and profiles remain dependent on actual trading records.
 - No admin credentials or Postman collection were provided. Admin mutations are covered with controlled contract fixtures, not claimed as live-verified.
 - Cashfree mode must match the backend environment. No real payment was completed by this implementation session.
+
+Direct API configuration (18 September 2026): the development proxy has been removed. Axios uses VITE_API_BASE_URL for both development and production. A live OPTIONS request to http://91.108.110.56/api/auth/login with Origin http://localhost:3000 returned 204 but Access-Control-Allow-Origin https://tradbullking-1.onrender.com. The backend must allow and return the matching localhost origin for direct browser requests to work. This cannot be corrected with frontend response headers. Authentication/rate-limit responses remain separate backend concerns.

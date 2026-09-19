@@ -11,6 +11,7 @@ import {
   UserRound,
 } from "lucide-react";
 import Brand from "./Brand";
+import LiveNewsMenu from "./LiveNewsMenu";
 import { formatINR } from "../utils/format";
 export function WorkspaceSidebar({
   links,
@@ -116,6 +117,7 @@ export function WorkspaceHeader({
         <span>{title}</span>
       </div>
       <div className="header-account">
+        {!admin && <LiveNewsMenu />}
         {!admin && (
           <div className="header-balance">
             <span>Virtual balance</span>

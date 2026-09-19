@@ -94,14 +94,5 @@ export const theme = createTheme({
         },
       },
     },
-    MuiSnackbar: {
-      styleOverrides: {
-        root: {
-          "@media(max-width:767px)": {
-            bottom: "calc(148px + env(safe-area-inset-bottom))",
-          },
-        },
-      },
-    },
   },
 });

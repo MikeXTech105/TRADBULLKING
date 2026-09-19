@@ -1,7 +1,6 @@
 import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  Alert,
   Button,
   Checkbox,
   FormControlLabel,
@@ -17,6 +16,7 @@ import {
   validateLogin,
 } from "../../services/authService";
 import { errorMessage } from "../../services/api";
+import { toastError, toastSuccess } from "../../services/toastService";
 export default function Login({ admin = false }) {
   const navigate = useNavigate();
   const busy = useRef(false);
@@ -26,12 +26,10 @@ export default function Login({ admin = false }) {
     remember: false,
   });
   const [errors, setErrors] = useState({});
-  const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const change = (e) => {
     setValues({ ...values, [e.target.name]: e.target.value });
     setErrors({ ...errors, [e.target.name]: "" });
-    setError("");
   };
   async function submit(e) {
     e.preventDefault();
@@ -41,12 +39,20 @@ export default function Login({ admin = false }) {
     if (Object.keys(next).length) return;
     busy.current = true;
     setSubmitting(true);
-    setError("");
     try {
       await (admin ? loginAdmin : loginUser)(values);
+      toastSuccess(admin ? "Admin login successful." : "Welcome back!", {
+        id: admin ? "admin-login" : "user-login",
+      });
       navigate(admin ? "/admin/dashboard" : "/dashboard", { replace: true });
     } catch (err) {
-      setError(errorMessage(err));
+      const message =
+        err?.response?.status === 401
+          ? admin
+            ? "Invalid admin credentials."
+            : "Invalid email or password."
+          : errorMessage(err);
+      toastError(message, { id: admin ? "admin-login" : "user-login" });
     } finally {
       busy.current = false;
       setSubmitting(false);
@@ -104,11 +110,6 @@ export default function Login({ admin = false }) {
               label="Remember me"
             />
           </div>
-        )}
-        {error && (
-          <Alert severity="error" className="form-alert">
-            {error}
-          </Alert>
         )}
         <SlowNotice busy={submitting} />
         <Button

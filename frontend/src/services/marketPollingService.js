@@ -1,6 +1,11 @@
 import { stockService } from "./stockService.js";
+import { validStockId } from "./stockIdentity.js";
 import { store, quoteReceived } from "../store/store";
-import { getTokenForId, getIdForToken } from "./instrumentRegistry.js";
+import {
+  getTokenForId,
+  getIdForToken,
+  onInstrumentRegistered,
+} from "./instrumentRegistry.js";
 import {
   onPriceUpdate,
   onStatusChange,
@@ -79,6 +84,12 @@ onStatusChange((status) => {
     syncTokenSubscriptions();
   }
 });
+onInstrumentRegistered((id, token) => {
+  // A subscription may already be active for this id (e.g. useQuote fired
+  // before the stock's own fetch resolved) with no token known yet at the
+  // time. Complete it now instead of leaving that entry on polling forever.
+  if (entries.has(id)) subscribeTokens([token]);
+});
 onPriceUpdate((payload) => {
   const id = getIdForToken(payload.token);
   if (!id || !entries.has(id)) return;
@@ -109,7 +120,7 @@ if (typeof document !== "undefined")
   });
 export function subscribeQuotes(ids, rate = 5000) {
   const subscriber = Symbol();
-  const wantedIds = [...new Set(ids.filter(Boolean))];
+  const wantedIds = [...new Set(ids.filter(validStockId).map(String))];
   for (const id of wantedIds) {
     let entry = entries.get(id);
     if (!entry) {
