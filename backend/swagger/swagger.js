@@ -242,6 +242,7 @@ The backend maintains a persistent WebSocket to AngelOne SmartAPI:
             open: { type: 'number' },
             close: { type: 'number' },
             volume: { type: 'integer' },
+            lotSize: { type: 'integer', example: 75, description: '1 = cash equity; >1 = futures lot size. Fee per execution = lots × ₹2' },
             isActive: { type: 'boolean' },
           },
         },

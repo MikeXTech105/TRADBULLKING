@@ -80,6 +80,12 @@ const placeBuyOrder = async (userId, stockId, quantity, priceType = 'MARKET', li
       );
     }
 
+    // Fee = ₹2 per lot. For cash equities (lotSize=1) it's flat ₹2 per order.
+    // For futures (e.g. lotSize=75): buying 150 units = 2 lots = ₹4 fee.
+    const lotSize = stock.lotSize || 1;
+    const lots = lotSize > 1 ? Math.ceil(quantity / lotSize) : 1;
+    const orderFee = user.isPremium ? lots * TRADE_FEE : 0;
+
     // Create order
     const order = new Order({
       userId,
@@ -94,7 +100,7 @@ const placeBuyOrder = async (userId, stockId, quantity, priceType = 'MARKET', li
       priceType,
       status: ORDER_STATUS.EXECUTED,
       totalValue,
-      feesDeducted: user.isPremium ? TRADE_FEE : 0,
+      feesDeducted: orderFee,
       executedAt: new Date(),
     });
 
@@ -145,9 +151,9 @@ const placeBuyOrder = async (userId, stockId, quantity, priceType = 'MARKET', li
     // Deduct dummyBalance
     user.dummyBalance -= totalValue;
 
-    // Deduct fee balance if premium
-    if (user.isPremium && user.feeBalance > 0) {
-      user.feeBalance = Math.max(0, user.feeBalance - TRADE_FEE);
+    // Deduct fee balance if premium (per-lot fee already calculated above)
+    if (user.isPremium && orderFee > 0) {
+      user.feeBalance = Math.max(0, user.feeBalance - orderFee);
     }
 
     // Increment trade count
@@ -166,6 +172,7 @@ const placeBuyOrder = async (userId, stockId, quantity, priceType = 'MARKET', li
       position,
       newBalance: user.dummyBalance,
       feeBalance: user.feeBalance,
+      feesDeducted: orderFee,
       totalValue,
       executionPrice,
     };
@@ -260,6 +267,11 @@ const placeSellOrder = async (userId, stockId, quantity, priceType = 'MARKET', l
     const realizedPnl = (executionPrice - position.avgBuyPrice) * quantity;
     const proceeds = quantity * executionPrice;
 
+    // Fee = ₹2 per lot (same logic as buy)
+    const lotSize = stock.lotSize || 1;
+    const lots = lotSize > 1 ? Math.ceil(quantity / lotSize) : 1;
+    const orderFee = user.isPremium ? lots * TRADE_FEE : 0;
+
     // Create order
     const order = new Order({
       userId,
@@ -275,7 +287,7 @@ const placeSellOrder = async (userId, stockId, quantity, priceType = 'MARKET', l
       status: ORDER_STATUS.EXECUTED,
       totalValue: proceeds,
       pnl: realizedPnl,
-      feesDeducted: user.isPremium ? TRADE_FEE : 0,
+      feesDeducted: orderFee,
       executedAt: new Date(),
     });
 
@@ -305,9 +317,9 @@ const placeSellOrder = async (userId, stockId, quantity, priceType = 'MARKET', l
     // Add sale proceeds to user's dummy balance
     user.dummyBalance += proceeds;
 
-    // Deduct fee balance if premium
-    if (user.isPremium && user.feeBalance > 0) {
-      user.feeBalance = Math.max(0, user.feeBalance - TRADE_FEE);
+    // Deduct fee balance if premium (per-lot fee already calculated above)
+    if (user.isPremium && orderFee > 0) {
+      user.feeBalance = Math.max(0, user.feeBalance - orderFee);
     }
 
     // Update trade stats
@@ -328,6 +340,7 @@ const placeSellOrder = async (userId, stockId, quantity, priceType = 'MARKET', l
       position,
       newBalance: user.dummyBalance,
       feeBalance: user.feeBalance,
+      feesDeducted: orderFee,
       pnl: realizedPnl,
       proceeds,
       executionPrice,

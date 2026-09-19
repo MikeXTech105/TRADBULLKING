@@ -229,7 +229,7 @@ const toggleUserActive = async (req, res) => {
  */
 const addStock = async (req, res) => {
   try {
-    const { symbol, token, exchange, name, exchangeType, high52, low52 } = req.body;
+    const { symbol, token, exchange, name, exchangeType, high52, low52, lotSize } = req.body;
 
     // Check if stock with token already exists
     const existingStock = await Stock.findOne({ token });
@@ -237,14 +237,17 @@ const addStock = async (req, res) => {
       return errorResponse(res, 'Stock with this token already exists', 409);
     }
 
+    // Determine exchangeType from exchange name if not provided
+    const exchangeTypeMap = { NSE: 1, NFO: 2, BSE: 3, BFO: 4, MCX: 5 };
     const stock = new Stock({
       symbol: symbol.toUpperCase(),
       token,
       exchange,
-      exchangeType: exchangeType || (exchange === 'NSE' ? 1 : exchange === 'BSE' ? 3 : 1),
+      exchangeType: exchangeType || exchangeTypeMap[exchange] || 1,
       name,
       high52: high52 || 0,
       low52: low52 || 0,
+      lotSize: lotSize || 1,
       isActive: false,
       addedBy: req.user._id,
     });
@@ -269,7 +272,7 @@ const addStock = async (req, res) => {
  */
 const updateStock = async (req, res) => {
   try {
-    const { name, high52, low52, exchangeType } = req.body;
+    const { name, high52, low52, exchangeType, lotSize } = req.body;
 
     const stock = await Stock.findById(req.params.id);
     if (!stock) {
@@ -280,6 +283,7 @@ const updateStock = async (req, res) => {
     if (high52 !== undefined) stock.high52 = high52;
     if (low52 !== undefined) stock.low52 = low52;
     if (exchangeType !== undefined) stock.exchangeType = exchangeType;
+    if (lotSize !== undefined && lotSize >= 1) stock.lotSize = lotSize;
 
     await stock.save();
 
@@ -491,12 +495,21 @@ const getAngelOneInstruments = async (req, res) => {
     const allInstruments = JSON.parse(fs.readFileSync(instrumentsFile, 'utf8'));
     let filtered = allInstruments;
 
-    // Filter only equity stocks: NSE/BSE instruments with empty instrumenttype
+    // Filter only equity cash stocks: NSE/BSE with empty instrumenttype
     if (type === 'stock') {
       filtered = filtered.filter(
         (i) =>
           ['NSE', 'BSE'].includes(i.exch_seg?.toUpperCase()) &&
           i.instrumenttype === '' && i.is_cas_enabled === true
+      );
+    }
+
+    // Filter only futures: NFO/BFO with FUTSTK (stock futures) or FUTIDX (index futures)
+    if (type === 'future') {
+      filtered = filtered.filter(
+        (i) =>
+          ['NFO', 'BFO'].includes(i.exch_seg?.toUpperCase()) &&
+          ['FUTSTK', 'FUTIDX'].includes(i.instrumenttype)
       );
     }
 

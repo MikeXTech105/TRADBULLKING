@@ -380,11 +380,17 @@ router.post('/angelone/session', adminController.initAngelOneSession);
  *           enum: [NSE, BSE, NFO, MCX, CDS]
  *         description: Filter by exchange
  *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [stock, future]
+ *         description: "Shorthand filter: stock = NSE/BSE cash equities; future = NFO/BFO stock+index futures"
+ *       - in: query
  *         name: instrumenttype
  *         schema:
  *           type: string
- *           enum: [AMXIDX, OPTIDX, FUTIDX, FUTSTK, OPTSTK, EQ]
- *         description: Filter by instrument type
+ *           enum: [FUTSTK, FUTIDX, OPTSTK, OPTIDX, FUTCOM, FUTCUR]
+ *         description: Filter by exact AngelOne instrumenttype field
  *       - in: query
  *         name: page
  *         schema:

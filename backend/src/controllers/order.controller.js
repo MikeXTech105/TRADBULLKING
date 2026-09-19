@@ -26,6 +26,7 @@ const placeBuyOrder = async (req, res) => {
       position: result.position,
       newBalance: result.newBalance,
       feeBalance: result.feeBalance,
+      feesDeducted: result.feesDeducted,
       executionPrice: result.executionPrice,
       totalValue: result.totalValue,
     }, 201);
@@ -60,6 +61,7 @@ const placeSellOrder = async (req, res) => {
       position: result.position,
       newBalance: result.newBalance,
       feeBalance: result.feeBalance,
+      feesDeducted: result.feesDeducted,
       pnl: result.pnl,
       proceeds: result.proceeds,
       executionPrice: result.executionPrice,

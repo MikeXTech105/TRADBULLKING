@@ -68,6 +68,12 @@ const stockSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    lotSize: {
+      type: Number,
+      default: 1,   // 1 = cash equity (no lot concept, flat fee per order)
+                    // >1 = futures/options (fee = lots × TRADE_FEE, e.g. NIFTY=75, BANKNIFTY=30)
+      min: 1,
+    },
     isActive: {
       type: Boolean,
       default: false, // Admin must enable

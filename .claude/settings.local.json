@@ -3,7 +3,8 @@
     "allow": [
       "Bash(node:*)",
       "Bash(grep -n \"require.*models\" \"D:/Project/TRADBULLKING/backend/src/controllers\"/*.js)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(python3:*)"
     ]
   }
 }
