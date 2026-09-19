@@ -15,7 +15,8 @@ import {
   StatusBadge,
   orderColumns,
 } from "../../components/DataView";
-import { QueryState, Notice } from "../../components/Feedback";
+import { QueryState } from "../../components/Feedback";
+import { toastError, toastSuccess } from "../../services/toastService";
 import { formatINR, formatDate } from "../../utils/format";
 import ServerMetrics from "../../components/ServerMetrics";
 export default function Users() {
@@ -159,7 +160,6 @@ export function UserDetail() {
   const pnl = useQuery(() => adminService.pnl(id), [id]);
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState(null);
   const user = query.data?.user ?? query.data;
   async function toggle() {
     if (busy) return;
@@ -168,9 +168,16 @@ export function UserDetail() {
       await adminService.toggleUser(id);
       store.dispatch(invalidate());
       setConfirm(false);
-      setNotice({ message: "User access updated." });
+      toastSuccess(
+        user?.isActive
+          ? "User deactivated successfully."
+          : "User activated successfully.",
+        { id: `user-status-${id}` },
+      );
     } catch (err) {
-      setNotice({ severity: "error", message: errorMessage(err) });
+      toastError(errorMessage(err, "Unable to update user status."), {
+        id: `user-status-${id}`,
+      });
     } finally {
       setBusy(false);
     }
@@ -275,7 +282,6 @@ export function UserDetail() {
         onConfirm={toggle}
         busy={busy}
       />
-      <Notice notice={notice} onClose={() => setNotice(null)} />
     </>
   );
 }

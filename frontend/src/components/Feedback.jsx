@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Alert, Button, Skeleton, Snackbar } from "@mui/material";
+import { Alert, Button, Skeleton } from "@mui/material";
 import { Inbox, RefreshCw } from "lucide-react";
 import { errorMessage } from "../services/api";
 export function SlowNotice({ busy }) {
@@ -69,22 +69,4 @@ export function QueryState({
       </div>
     );
   return children;
-}
-export function Notice({ notice, onClose }) {
-  return (
-    <Snackbar
-      open={Boolean(notice)}
-      autoHideDuration={6000}
-      onClose={onClose}
-      anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-    >
-      <Alert
-        severity={notice?.severity || "success"}
-        onClose={onClose}
-        variant="filled"
-      >
-        {notice?.message}
-      </Alert>
-    </Snackbar>
-  );
 }

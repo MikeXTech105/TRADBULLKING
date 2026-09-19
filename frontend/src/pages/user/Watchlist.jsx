@@ -7,14 +7,14 @@ import { watchlistService } from "../../services/watchlistService";
 import { errorMessage } from "../../services/api";
 import { store, invalidate } from "../../store/store";
 import { PageHeader, ConfirmDialog } from "../../components/DataView";
-import { QueryState, Notice } from "../../components/Feedback";
+import { QueryState } from "../../components/Feedback";
+import { toastError, toastSuccess } from "../../services/toastService";
 import StockList from "../../components/StockList";
 export default function Watchlist() {
   const query = useQuery((signal) => watchlistService.list(signal));
   const [search, setSearch] = useState("");
   const [busy, setBusy] = useState(null);
   const [clear, setClear] = useState(false);
-  const [notice, setNotice] = useState(null);
   const rows = (query.data?.rows ?? []).filter((r) =>
     `${r.symbol} ${r.name}`.toLowerCase().includes(search.toLowerCase()),
   );
@@ -24,9 +24,11 @@ export default function Watchlist() {
     try {
       await watchlistService.remove(id);
       store.dispatch(invalidate());
-      setNotice({ message: "Instrument removed." });
+      toastSuccess("Removed from watchlist.", { id: `watchlist-${id}` });
     } catch (e) {
-      setNotice({ severity: "error", message: errorMessage(e) });
+      toastError(errorMessage(e, "Unable to update watchlist."), {
+        id: `watchlist-${id}`,
+      });
     } finally {
       setBusy(null);
     }
@@ -38,9 +40,11 @@ export default function Watchlist() {
       await watchlistService.clear();
       store.dispatch(invalidate());
       setClear(false);
-      setNotice({ message: "Watchlist cleared." });
+      toastSuccess("Watchlist cleared.", { id: "watchlist-clear" });
     } catch (e) {
-      setNotice({ severity: "error", message: errorMessage(e) });
+      toastError(errorMessage(e, "Unable to clear watchlist."), {
+        id: "watchlist-clear",
+      });
     } finally {
       setBusy(null);
     }
@@ -99,7 +103,6 @@ export default function Watchlist() {
         onConfirm={clearAll}
         busy={busy === "all"}
       />
-      <Notice notice={notice} onClose={() => setNotice(null)} />
     </>
   );
 }

@@ -1,5 +1,5 @@
 import RowActions from "../../components/RowActions";
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Button,
@@ -8,11 +8,17 @@ import {
   DialogContent,
   DialogActions,
   MenuItem,
+  Switch,
   TextField,
 } from "@mui/material";
 import { Plus, RefreshCw, Search } from "lucide-react";
 import { useQuery, useDebounce } from "../../hooks/useQuery";
-import { adminService } from "../../services/adminService";
+import { useTokenPrices } from "../../hooks/useTokenPrices";
+import {
+  adminService,
+  PROVIDER_EXCHANGES,
+  PROVIDER_INSTRUMENT_TYPES,
+} from "../../services/adminService";
 import { errorMessage } from "../../services/api";
 import { store, invalidate } from "../../store/store";
 import {
@@ -22,22 +28,18 @@ import {
   ConfirmDialog,
   StatusBadge,
 } from "../../components/DataView";
-import { QueryState, Notice } from "../../components/Feedback";
+import { QueryState } from "../../components/Feedback";
+import {
+  toastError,
+  toastLoading,
+  toastSuccess,
+} from "../../services/toastService";
 import { formatINR } from "../../utils/format";
-const PROVIDER_EXCHANGES = ["NSE", "BSE", "NFO", "MCX", "CDS"];
-const PROVIDER_INSTRUMENT_TYPES = [
-  "EQ",
-  "FUTSTK",
-  "OPTSTK",
-  "FUTIDX",
-  "OPTIDX",
-  "AMXIDX",
-];
 function InstrumentPicker({ onPick, onClose }) {
   const [search, setSearch] = useState("");
   const q = useDebounce(search);
   const [exchange, setExchange] = useState("NSE");
-  const [instrumenttype, setInstrumentType] = useState("EQ");
+  const [instrumenttype, setInstrumentType] = useState("stock");
   const [page, setPage] = useState(1);
   const query = useQuery(
     (signal) =>
@@ -97,9 +99,9 @@ function InstrumentPicker({ onPick, onClose }) {
               setPage(1);
             }}
           >
-            {PROVIDER_INSTRUMENT_TYPES.map((x) => (
-              <MenuItem key={x} value={x}>
-                {x}
+            {PROVIDER_INSTRUMENT_TYPES.map((t) => (
+              <MenuItem key={t.value} value={t.value}>
+                {t.label}
               </MenuItem>
             ))}
           </TextField>
@@ -111,32 +113,27 @@ function InstrumentPicker({ onPick, onClose }) {
           emptyText="Try a different search term, exchange, or instrument type."
         >
           <ul className="provider-results">
-            {(query.data?.rows ?? []).map((r, i) => {
-              const symbol = r.tradingsymbol ?? r.symbol ?? r.name;
-              const token = r.symboltoken ?? r.token;
-              const exch = r.exch_seg ?? r.exchange ?? exchange;
-              return (
-                <li key={token ?? i}>
-                  <button
-                    type="button"
-                    className="provider-result-row"
-                    onClick={() =>
-                      onPick({
-                        symbol,
-                        token,
-                        exchange: exch,
-                        name: r.name ?? symbol,
-                      })
-                    }
-                  >
-                    <strong>{symbol ?? "Instrument"}</strong>
-                    <span>
-                      {exch} · {token ?? "—"}
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
+            {(query.data?.rows ?? []).map((r, i) => (
+              <li key={r.token || i}>
+                <button
+                  type="button"
+                  className="provider-result-row"
+                  onClick={() =>
+                    onPick({
+                      symbol: r.symbol,
+                      token: r.token,
+                      exchange: r.exchange ?? exchange,
+                      name: r.name ?? r.symbol,
+                    })
+                  }
+                >
+                  <strong>{r.symbol ?? "Instrument"}</strong>
+                  <span>
+                    {r.exchange ?? exchange} · {r.token || "—"}
+                  </span>
+                </button>
+              </li>
+            ))}
           </ul>
         </QueryState>
         <Pagination page={page} onChange={setPage} data={query.data} />
@@ -147,7 +144,7 @@ function InstrumentPicker({ onPick, onClose }) {
     </Dialog>
   );
 }
-function StockForm({ stock, onClose }) {
+export function StockForm({ stock, onClose }) {
   const edit = Boolean(stock?.id);
   const lock = useRef(false);
   const [values, setValues] = useState(
@@ -157,7 +154,15 @@ function StockForm({ stock, onClose }) {
           high52: stock.high52 ?? "",
           low52: stock.low52 ?? "",
         }
-      : { symbol: "", token: "", exchange: "NSE", name: "", exchangeType: 1 },
+      : {
+          // Prefilled when opened from the Instruments & Symbols catalogue
+          // ("Add to Trading"); empty when opened as a blank Add stock form.
+          symbol: stock?.symbol ?? "",
+          token: stock?.token ?? "",
+          exchange: stock?.exchange ?? "NSE",
+          name: stock?.name ?? "",
+          exchangeType: 1,
+        },
   );
   const [errors, setErrors] = useState({});
   const [error, setError] = useState("");
@@ -205,9 +210,18 @@ function StockForm({ stock, onClose }) {
         ? adminService.editStock(stock.id, body)
         : adminService.addStock(body));
       store.dispatch(invalidate());
+      toastSuccess(
+        edit ? "Instrument updated successfully." : "Instrument added successfully.",
+        { id: "stock-form" },
+      );
       onClose();
     } catch (err) {
-      setError(errorMessage(err));
+      const message = errorMessage(
+        err,
+        edit ? "Unable to update instrument." : "Unable to add instrument.",
+      );
+      setError(message);
+      toastError(message, { id: "stock-form" });
     } finally {
       lock.current = false;
       setBusy(false);
@@ -240,8 +254,8 @@ function StockForm({ stock, onClose }) {
                     exchange: "Exchange",
                     name: "Instrument name",
                     exchangeType: "Exchange type",
-                    high52: "52-week high",
-                    low52: "52-week low",
+                    // high52: "52-week high",
+                    // low52: "52-week low",
                   }[key]
                 }
                 select={key === "exchange"}
@@ -320,24 +334,80 @@ export default function Stocks() {
       ),
     [q, page, exchange],
   );
+  const rows = query.data?.rows ?? [];
+  const tokens = useMemo(() => rows.map((r) => r.token), [rows]);
+  const livePrices = useTokenPrices(tokens);
+  useEffect(() => {
+    // Auto-sync once on page load so LTP/52-week values are current without
+    // requiring a manual click; failures (e.g. AngelOne session down) stay
+    // silent here — the "Sync prices" button remains for an explicit retry.
+    adminService
+      .sync()
+      .then(() => store.dispatch(invalidate()))
+      .catch(() => {});
+  }, []);
   const [form, setForm] = useState(null);
   const [action, setAction] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState(null);
+  const [togglingIds, setTogglingIds] = useState(() => new Set());
+  async function quickToggle(stock) {
+    if (togglingIds.has(stock.id)) return;
+    setTogglingIds((prev) => new Set(prev).add(stock.id));
+    try {
+      await adminService.toggleStock(stock.id);
+      store.dispatch(invalidate());
+      toastSuccess(
+        stock.isActive ? "Instrument disabled." : "Instrument enabled.",
+        { id: `stock-toggle-${stock.id}` },
+      );
+    } catch (err) {
+      toastError(errorMessage(err, "Unable to update instrument."), {
+        id: `stock-toggle-${stock.id}`,
+      });
+    } finally {
+      setTogglingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(stock.id);
+        return next;
+      });
+    }
+  }
   async function confirm() {
     if (busy) return;
     setBusy(true);
+    if (action.type === "sync")
+      toastLoading("Syncing market prices…", { id: "stock-sync" });
     try {
       if (action.type === "delete")
         await adminService.deleteStock(action.stock.id);
-      else if (action.type === "toggle")
-        await adminService.toggleStock(action.stock.id);
+      else if (action.type === "enableAll")
+        await Promise.all(
+          rows
+            .filter((r) => r.isActive === false)
+            .map((r) => adminService.toggleStock(r.id)),
+        );
       else await adminService.sync();
       store.dispatch(invalidate());
+      const message =
+        action.type === "delete"
+          ? "Instrument deleted successfully."
+          : action.type === "enableAll"
+            ? "Instruments enabled successfully."
+            : "Market prices synced successfully.";
+      toastSuccess(message, {
+        id: action.type === "sync" ? "stock-sync" : "stock-operation",
+      });
       setAction(null);
-      setNotice({ message: "Stock operation completed." });
     } catch (err) {
-      setNotice({ severity: "error", message: errorMessage(err) });
+      toastError(
+        errorMessage(
+          err,
+          action.type === "sync"
+            ? "Unable to sync market prices."
+            : "Unable to update instrument.",
+        ),
+        { id: action.type === "sync" ? "stock-sync" : "stock-operation" },
+      );
     } finally {
       setBusy(false);
     }
@@ -355,36 +425,54 @@ export default function Stocks() {
     },
     { key: "exchange", label: "Exchange" },
     { key: "token", label: "Provider token" },
-    ...(query.data?.rows?.some(
-      (r) => r.high52 !== undefined || r.low52 !== undefined,
-    )
+    ...(rows.some((r) => r.high52 !== undefined || r.low52 !== undefined)
       ? [
-          {
-            key: "high52",
-            label: "52-week high",
-            render: (r) => formatINR(r.high52),
-          },
-          {
-            key: "low52",
-            label: "52-week low",
-            render: (r) => formatINR(r.low52),
-          },
+          // {
+          //   key: "high52",
+          //   label: "52-week high",
+          //   render: (r) => formatINR(r.high52),
+          // },
+          // {
+          //   key: "low52",
+          //   label: "52-week low",
+          //   render: (r) => formatINR(r.low52),
+          // },
         ]
       : []),
-    { key: "ltp", label: "LTP", render: (r) => formatINR(r.ltp) },
+    {
+      key: "ltp",
+      label: "LTP",
+      // Live tick from the shared market socket when available; falls back
+      // to the last price the backend synced onto the stock record.
+      render: (r) => {
+        const live = r.token ? livePrices[r.token]?.ltp : undefined;
+        return live !== undefined ? formatINR(live) : formatINR(r.ltp);
+      },
+    },
     {
       key: "isActive",
       label: "Status",
       render: (r) => (
-        <StatusBadge
-          value={
-            r.isActive === true
-              ? "Active"
-              : r.isActive === false
-                ? "Inactive"
-                : undefined
-          }
-        />
+        <div className="status-toggle-cell">
+          <Switch
+            size="small"
+            checked={Boolean(r.isActive)}
+            disabled={togglingIds.has(r.id)}
+            onChange={() => quickToggle(r)}
+            inputProps={{
+              "aria-label": `${r.isActive ? "Disable" : "Enable"} ${r.symbol}`,
+            }}
+          />
+          <StatusBadge
+            value={
+              r.isActive === true
+                ? "Active"
+                : r.isActive === false
+                  ? "Inactive"
+                  : undefined
+            }
+          />
+        </div>
       ),
     },
     {
@@ -395,10 +483,6 @@ export default function Stocks() {
           name={r.symbol}
           actions={[
             { label: "Edit", onClick: () => setForm(r) },
-            {
-              label: r.isActive ? "Disable" : "Enable",
-              onClick: () => setAction({ type: "toggle", stock: r }),
-            },
             {
               label: "Delete",
               danger: true,
@@ -417,6 +501,14 @@ export default function Stocks() {
         description="Control the instruments available to your traders."
         action={
           <div className="heading-actions">
+            {rows.some((r) => r.isActive === false) && (
+              <Button
+                variant="outlined"
+                onClick={() => setAction({ type: "enableAll" })}
+              >
+                Enable all
+              </Button>
+            )}
             <Button
               variant="outlined"
               startIcon={<RefreshCw size={16} />}
@@ -466,11 +558,11 @@ export default function Stocks() {
         </div>
         <QueryState
           query={query}
-          empty={!query.data?.rows?.length}
+          empty={!rows.length}
           emptyTitle="No stocks found"
           emptyText="Add a verified instrument to make it available to users."
         >
-          <DataTable rows={query.data?.rows} columns={columns} />
+          <DataTable rows={rows} columns={columns} />
         </QueryState>
         <Pagination page={page} onChange={setPage} data={query.data} />
       </section>
@@ -480,22 +572,21 @@ export default function Stocks() {
         title={
           action?.type === "delete"
             ? `Delete ${action.stock.symbol}?`
-            : action?.type === "toggle"
-              ? `Update ${action.stock.symbol} availability?`
+            : action?.type === "enableAll"
+              ? "Enable all visible stocks?"
               : "Sync market prices?"
         }
         description={
           action?.type === "delete"
             ? "This removes the instrument. The backend may reject deletion if open positions exist."
-            : action?.type === "toggle"
-              ? "This changes whether the instrument is available to users."
+            : action?.type === "enableAll"
+              ? "This activates every currently disabled stock shown on this page."
               : "Fetch current prices for active instruments from AngelOne."
         }
         onClose={() => setAction(null)}
         onConfirm={confirm}
         busy={busy}
       />
-      <Notice notice={notice} onClose={() => setNotice(null)} />
     </>
   );
 }
