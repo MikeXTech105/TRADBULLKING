@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, Navigate, useParams } from "react-router-dom";
+import { validStockId } from "../../services/stockIdentity";
 import {
   Button,
   Dialog,
@@ -14,12 +15,10 @@ import { ArrowLeft, X } from "lucide-react";
 import { useQuery } from "../../hooks/useQuery";
 import { useQuote } from "../../hooks/useQuotes";
 import { stockService, intervals } from "../../services/stockService";
-import { watchlistService } from "../../services/watchlistService";
 import { orderService } from "../../services/orderService";
 import { formatINR, formatPercent, pnlClass } from "../../utils/format";
 import { QueryState } from "../../components/Feedback";
 import { StatCards, portfolioFields } from "../../components/DataView";
-import StockList from "../../components/StockList";
 import TradingChart from "../../components/TradingChart";
 import OrderTicket from "../../components/OrderTicket";
 function localDate(date) {
@@ -37,12 +36,18 @@ function localDate(date) {
 }
 export default function Trade() {
   const { stockId } = useParams();
+  return validStockId(stockId) ? (
+    <InstrumentTrade key={stockId} stockId={stockId} />
+  ) : (
+    <Navigate to="/market" replace />
+  );
+}
+function InstrumentTrade({ stockId }) {
   const mobile = useMediaQuery("(max-width: 767px)");
   const instrument = useQuery(
     (signal) => stockService.get(stockId, signal),
     [stockId],
   );
-  const watchlist = useQuery((signal) => watchlistService.list(signal));
   const portfolio = useQuery((signal) => orderService.portfolio(signal));
   const positions = useQuery((signal) => orderService.open(signal), [stockId]);
   const quote = useQuote(stockId, instrument.data);
@@ -98,23 +103,6 @@ export default function Trade() {
           </div>
         </div>
         <div className="trade-workspace">
-          <aside className="surface trade-watchlist">
-            <div className="section-heading">
-              <h2>Watchlist</h2>
-              <Link to="/watchlist">View</Link>
-            </div>
-            <QueryState
-              query={watchlist}
-              empty={!watchlist.data?.rows?.length}
-              emptyTitle="No instruments"
-              emptyText="Build your watchlist from Market."
-            >
-              <StockList
-                compact
-                rows={watchlist.data?.rows?.slice(0, 8) || []}
-              />
-            </QueryState>
-          </aside>
           <section className="surface chart-panel">
             <QueryState
               query={history}

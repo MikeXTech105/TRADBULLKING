@@ -5,8 +5,7 @@ import { readSession } from "./session.js";
 // unsubscribe:stocks). Subscriber/quote bookkeeping lives in
 // marketPollingService.js; this module only owns the single shared socket.
 function resolveSocketUrl() {
-  const base =
-    import.meta.env?.VITE_API_BASE_URL || "https://tradbullking.onrender.com/api";
+  const base = import.meta.env?.VITE_API_BASE_URL || "http://91.108.110.56/api";
   return base.replace(/\/api\/?$/, "");
 }
 let socket = null;

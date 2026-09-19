@@ -4,6 +4,7 @@ import { Plus, X, ArrowUpRight } from "lucide-react";
 import { IconButton, Tooltip } from "@mui/material";
 import { useQuotes } from "../hooks/useQuotes";
 import { formatINR, formatPercent, pnlClass } from "../utils/format";
+import { validStockId } from "../services/stockIdentity";
 export default function StockList({
   rows,
   onAdd,
@@ -20,7 +21,7 @@ export default function StockList({
       (entries) => {
         for (const entry of entries) {
           const id = entry.target.dataset.stockId;
-          if (entry.isIntersecting) visible.add(id);
+          if (entry.isIntersecting && validStockId(id)) visible.add(id);
           else visible.delete(id);
         }
         const next = [...visible].sort();
@@ -42,11 +43,23 @@ export default function StockList({
         <span>Instrument</span>
         <span>Last price / Change</span>
       </div>
-      {rows.map((stock) => {
+      {rows.map((stock, index) => {
+        const available = validStockId(stock.id);
+        const InstrumentLink = available ? Link : "div";
         const quote = quotes[stock.id];
         return (
-          <div key={stock.id} data-stock-id={stock.id} className="stock-row">
-            <Link to={`/trade/${stock.id}`}>
+          <div
+            key={stock.id || `${stock.symbol}-${index}`}
+            data-stock-id={available ? stock.id : undefined}
+            className="stock-row"
+          >
+            <InstrumentLink
+              className="stock-link"
+              to={
+                available ? `/trade/${encodeURIComponent(stock.id)}` : undefined
+              }
+              aria-disabled={available ? undefined : true}
+            >
               <span className="instrument-cell">
                 <strong>{stock.symbol ?? "—"}</strong>
                 <small>
@@ -68,11 +81,14 @@ export default function StockList({
                 )}
                 {quote?.stale && <small>Last available price</small>}
               </span>
-            </Link>
+              {!available && (
+                <small className="subtle-label">Unavailable for trading</small>
+              )}
+            </InstrumentLink>
             {onAdd && (
               <Tooltip title="Add to watchlist">
                 <IconButton
-                  disabled={busy === stock.id}
+                  disabled={!available || busy === stock.id}
                   aria-label={`Add ${stock.symbol} to watchlist`}
                   onClick={() => onAdd(stock.id)}
                 >
@@ -83,7 +99,7 @@ export default function StockList({
             {onRemove && (
               <Tooltip title="Remove from watchlist">
                 <IconButton
-                  disabled={busy === stock.id}
+                  disabled={!available || busy === stock.id}
                   aria-label={`Remove ${stock.symbol} from watchlist`}
                   onClick={() => onRemove(stock.id)}
                 >

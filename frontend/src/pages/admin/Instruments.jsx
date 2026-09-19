@@ -15,8 +15,15 @@ import {
   PROVIDER_EXCHANGES,
   PROVIDER_INSTRUMENT_TYPES,
 } from "../../services/adminService";
-import { PageHeader, DataTable, Pagination } from "../../components/DataView";
-import { QueryState } from "../../components/Feedback";
+import { errorMessage } from "../../services/api";
+import { store, invalidate } from "../../store/store";
+import {
+  PageHeader,
+  DataTable,
+  Pagination,
+  ConfirmDialog,
+} from "../../components/DataView";
+import { QueryState, Notice } from "../../components/Feedback";
 import { StockForm } from "./Stocks";
 import {
   formatINR,
@@ -80,12 +87,18 @@ export default function Instruments() {
   const mobile = useMediaQuery("(max-width: 767px)");
   const [search, setSearch] = useState("");
   const q = useDebounce(search, 400);
-  const [exchange, setExchange] = useState("");
-  const [instrumenttype, setInstrumentType] = useState("");
+  // Default to NSE equities (exchange=NSE, type=stock) — the unfiltered
+  // catalogue is dominated by other exchanges/index/derivative entries,
+  // which isn't the useful starting point for this screen.
+  const [exchange, setExchange] = useState("NSE");
+  const [instrumenttype, setInstrumentType] = useState("stock");
   const [limit, setLimit] = useState(50);
   const [page, setPage] = useState(1);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [draft, setDraft] = useState(null);
+  const [confirmAddAll, setConfirmAddAll] = useState(false);
+  const [bulkAdding, setBulkAdding] = useState(false);
+  const [notice, setNotice] = useState(null);
   const resetPage = () => setPage(1);
   const query = useQuery(
     (signal) =>
@@ -111,6 +124,37 @@ export default function Instruments() {
     [activeStocks.data],
   );
   const rows = query.data?.rows ?? [];
+  const addableRows = useMemo(
+    () => rows.filter((r) => r.token && r.symbol && !activeTokens.has(r.token)),
+    [rows, activeTokens],
+  );
+  async function addAll() {
+    if (bulkAdding) return;
+    setBulkAdding(true);
+    const results = await Promise.allSettled(
+      addableRows.map((r) =>
+        adminService.addStock({
+          symbol: r.symbol,
+          token: r.token,
+          exchange: PROVIDER_EXCHANGES.includes(r.exchange) ? r.exchange : "NSE",
+          name: r.name ?? r.symbol,
+          exchangeType: 1,
+        }),
+      ),
+    );
+    store.dispatch(invalidate());
+    setConfirmAddAll(false);
+    setBulkAdding(false);
+    const failed = results.filter((r) => r.status === "rejected");
+    const noun = (n) => `${n} instrument${n === 1 ? "" : "s"}`;
+    if (!failed.length)
+      setNotice({ message: `Added ${noun(results.length)} to trading.` });
+    else
+      setNotice({
+        severity: "error",
+        message: `Added ${noun(results.length - failed.length)} of ${results.length}. ${failed.length} failed: ${errorMessage(failed[0].reason)}`,
+      });
+  }
   const tokens = useMemo(() => rows.map((r) => r.token), [rows]);
   const prices = useTokenPrices(tokens);
   const hasLot = rows.some((r) => r.lotSize !== undefined);
@@ -170,13 +214,23 @@ export default function Instruments() {
         title="Instruments & Symbols"
         description="Browse and manage AngelOne market instruments."
         action={
-          <Button
-            variant="outlined"
-            startIcon={<RefreshCw size={16} />}
-            onClick={() => query.retry()}
-          >
-            Refresh
-          </Button>
+          <div className="heading-actions">
+            {addableRows.length > 0 && (
+              <Button
+                variant="outlined"
+                onClick={() => setConfirmAddAll(true)}
+              >
+                Add all
+              </Button>
+            )}
+            <Button
+              variant="outlined"
+              startIcon={<RefreshCw size={16} />}
+              onClick={() => query.retry()}
+            >
+              Refresh
+            </Button>
+          </div>
         }
       />
       <section className="surface">
@@ -294,6 +348,15 @@ export default function Instruments() {
         </div>
       </Drawer>
       {draft && <StockForm stock={draft} onClose={() => setDraft(null)} />}
+      <ConfirmDialog
+        open={confirmAddAll}
+        title={`Add ${addableRows.length} instrument${addableRows.length === 1 ? "" : "s"} to trading?`}
+        description="This adds every instrument currently listed on this page to the active trading stock list."
+        onClose={() => setConfirmAddAll(false)}
+        onConfirm={addAll}
+        busy={bulkAdding}
+      />
+      <Notice notice={notice} onClose={() => setNotice(null)} />
     </>
   );
 }

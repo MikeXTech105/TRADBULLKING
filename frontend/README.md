@@ -15,11 +15,11 @@ Open http://localhost:3000. `npm run build` creates `dist`; `npm run preview` pr
 Required public environment values:
 
 ```dotenv
-VITE_API_BASE_URL=https://tradbullking.onrender.com/api
+VITE_API_BASE_URL=http://91.108.110.56/api
 VITE_CASHFREE_MODE=sandbox
 ```
 
-Cashfree mode must match the backend payment account: use `production` only with its production checkout sessions. Never place secret API/payment/provider credentials in Vite environment values. Development uses a same-origin `/api` proxy; production uses the configured API URL and requires backend CORS to allow the deployed frontend origin.
+Cashfree mode must match the backend payment account: use `production` only with its production checkout sessions. Never place secret API/payment/provider credentials in Vite environment values. Development and production both call VITE_API_BASE_URL directly. Backend CORS must allow the frontend origin, including http://localhost:3000 for local development.
 
 ## Completed screens and integration
 
@@ -64,3 +64,4 @@ The user and admin panels now share the COSMOS-reference layout: navy navigation
 `public/branding/tradbullking-logo-full.png` and `tradbullking-logo-transparent.png` are unmodified copies of the supplied September 18 brand assets (source/copy SHA-256 hashes match). `src/components/Brand.jsx` centrally selects the full logo for auth, loading and membership, and the transparent logo for user/admin workspace headers and navigation. White backing preserves the original dark wordmark on navy sidebars. Images retain their aspect ratio; plain TRADBULLKING text appears only after an image-load failure. No logo filters or redesigned artwork are used.
 
 Branding checks: login/signup/admin login and user/admin overview/membership at 375×812, 768×1024 and 1440×900; all visible images loaded, contain scaling retained and no horizontal overflow. The isolated workspace QA console reported no warnings/errors. Production build passed after asset integration.
+

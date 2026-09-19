@@ -1,4 +1,5 @@
 import { stockService } from "./stockService.js";
+import { validStockId } from "./stockIdentity.js";
 import { store, quoteReceived } from "../store/store";
 import {
   getTokenForId,
@@ -119,7 +120,7 @@ if (typeof document !== "undefined")
   });
 export function subscribeQuotes(ids, rate = 5000) {
   const subscriber = Symbol();
-  const wantedIds = [...new Set(ids.filter(Boolean))];
+  const wantedIds = [...new Set(ids.filter(validStockId).map(String))];
   for (const id of wantedIds) {
     let entry = entries.get(id);
     if (!entry) {

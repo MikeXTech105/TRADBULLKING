@@ -6,10 +6,10 @@ import {
   sessionRevision,
 } from "./session.js";
 import { tokens, unwrap } from "./adapters.js";
-const baseURL = import.meta.env?.DEV
-  ? "/api"
-  : import.meta.env?.VITE_API_BASE_URL ||
-    "https://tradbullking.onrender.com/api";
+// Use the configured backend directly in development and production.
+const baseURL = (
+  import.meta.env?.VITE_API_BASE_URL || "http://91.108.110.56/api"
+).replace(/\/+$/, "");
 const options = {
   baseURL,
   timeout: 60000,

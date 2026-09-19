@@ -604,7 +604,7 @@ input:-webkit-autofill {
 .stock-row:last-child {
   border-bottom: 0;
 }
-.stock-row > a {
+.stock-row > .stock-link {
   flex: 1;
   min-width: 0;
   display: flex;
@@ -807,6 +807,11 @@ input:-webkit-autofill {
 .filter-active {
   color: var(--brand) !important;
   background: #fff0f2;
+}
+.status-toggle-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 .pagination {
   display: flex;
@@ -1014,25 +1019,13 @@ input:-webkit-autofill {
 }
 .trade-workspace {
   display: grid;
-  grid-template-columns: 200px minmax(0, 1fr) 280px;
+  grid-template-columns: minmax(0, 1fr) 280px;
   gap: 16px;
   align-items: start;
 }
 .trade-workspace .surface {
   padding: 16px;
   min-width: 0;
-}
-.trade-watchlist .stock-row {
-  padding: 10px 0;
-}
-.trade-watchlist .stock-row button {
-  flex-wrap: wrap;
-}
-.trade-watchlist .stock-price {
-  margin-left: auto;
-}
-.trade-watchlist .stock-arrow {
-  display: none;
 }
 .chart-panel {
   overflow: hidden;
@@ -1588,13 +1581,6 @@ input:-webkit-autofill {
 .install-actions button {
   flex: 1;
 }
-.trade-watchlist .stock-row > a {
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.trade-watchlist .stock-row > a > .instrument-cell {
-  width: 100%;
-}
 .chart-range > .MuiTextField-root {
   width: 180px;
   max-width: 100%;
@@ -1645,9 +1631,6 @@ input:-webkit-autofill {
 @media (max-width: 1399px) {
   .trade-workspace {
     grid-template-columns: minmax(0, 1fr) 280px;
-  }
-  .trade-watchlist {
-    display: none;
   }
 }
 @media (max-width: 1100px) {
@@ -2231,5 +2214,42 @@ input:-webkit-autofill {
   }
   .loading-chart .MuiSkeleton-root {
     height: 310px !important;
+  }
+}
+.live-news-button {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.live-news-button .MuiButton-startIcon {
+  color: var(--brand);
+}
+.live-news-channel {
+  display: flex !important;
+  justify-content: space-between !important;
+  gap: 32px !important;
+  min-width: 230px;
+  min-height: 48px;
+}
+.live-news-channel strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+}
+.live-news-channel small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 3px;
+}
+.live-news-channel > svg {
+  color: var(--muted);
+}
+@media (max-width: 767px) {
+  .live-news-button {
+    padding: 8px 10px !important;
+    font-size: 12px !important;
+  }
+  .live-news-button .MuiButton-endIcon {
+    display: none;
   }
 }

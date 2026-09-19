@@ -1,5 +1,6 @@
 import { userApi } from "./api.js";
-import { unwrap, collection, identify, candles } from "./adapters.js";
+import { unwrap, collection, tradingStock, candles } from "./adapters.js";
+import { requireStockId } from "./stockIdentity.js";
 export const intervals = [
   { value: "ONE_MINUTE", label: "1m", seconds: 60 },
   { value: "THREE_MINUTE", label: "3m", seconds: 180 },
@@ -21,18 +22,16 @@ export const stockService = {
       "stocks",
     ),
   get: async (id, signal) =>
-    identify(
-      unwrap(
-        await userApi.get(`/stocks/${encodeURIComponent(id)}`, { signal }),
-      ),
+    tradingStock(
+      unwrap(await userApi.get(`/stocks/${requireStockId(id)}`, { signal })),
     ),
   symbol: async (symbol) =>
-    identify(
+    tradingStock(
       unwrap(await userApi.get(`/stocks/symbol/${encodeURIComponent(symbol)}`)),
     ),
   ltp: async (id, signal) => ({
     ...unwrap(
-      await userApi.get(`/stocks/${encodeURIComponent(id)}/ltp`, {
+      await userApi.get(`/stocks/${requireStockId(id)}/ltp`, {
         params: { fresh: "true" },
         signal,
       }),
@@ -42,7 +41,7 @@ export const stockService = {
   historical: async (id, params, signal) =>
     candles(
       unwrap(
-        await userApi.get(`/stocks/${encodeURIComponent(id)}/historical`, {
+        await userApi.get(`/stocks/${requireStockId(id)}/historical`, {
           params,
           signal,
         }),

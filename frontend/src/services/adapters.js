@@ -1,5 +1,6 @@
 import { hasNumber } from "../utils/format.js";
 import { registerInstrument } from "./instrumentRegistry.js";
+import { validStockId } from "./stockIdentity.js";
 export function unwrap(response) {
   const body = response.data;
   if (body?.success === false)
@@ -31,11 +32,29 @@ export function collection(data, key) {
     );
   const pagination = data?.pagination ?? {};
   return {
-    rows: rows.map(identify),
+    rows: rows.map(key === "stocks" ? tradingStock : identify),
     total: pagination.total ?? data?.total ?? pagination.totalItems,
     page: pagination.page ?? data?.page ?? 1,
     totalPages: pagination.pages ?? pagination.totalPages ?? data?.totalPages,
   };
+}
+export function tradingStock(row) {
+  if (!row) return row;
+  const nested =
+    row.stock && typeof row.stock === "object"
+      ? row.stock
+      : row.stockId && typeof row.stockId === "object"
+        ? row.stockId
+        : null;
+  const source = nested ? { ...row, ...nested } : row;
+  const candidates = nested
+    ? [nested.id, nested._id, row.stockId]
+    : [row.id, row._id, row.stockId];
+  const id = candidates.find(validStockId);
+  return identify({
+    ...source,
+    id: id === undefined ? undefined : String(id).trim(),
+  });
 }
 export function profile(data) {
   return identify(data?.user ?? data);

@@ -54,6 +54,25 @@ const list = (data, page = 1, limit = 20) => ({
 });
 const success = (data) => ({ success: true, data });
 const server = http.createServer(async (req, res) => {
+  // The QA frontend now uses the API directly, matching production wiring.
+  if (
+    ["http://127.0.0.1:3002", "http://localhost:3002"].includes(
+      req.headers.origin,
+    )
+  ) {
+    res.setHeader("Access-Control-Allow-Origin", req.headers.origin);
+    res.setHeader(
+      "Access-Control-Allow-Methods",
+      "GET,POST,PUT,DELETE,PATCH,OPTIONS",
+    );
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization");
+    res.setHeader("Vary", "Origin");
+  }
+  if (req.method === "OPTIONS") {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
   const url = new URL(req.url, "http://127.0.0.1");
   const path = url.pathname.replace(/^\/api/, "");
   let body = {};
@@ -271,8 +290,7 @@ const server = http.createServer(async (req, res) => {
       Number(url.searchParams.get("page") || 1),
       Number(url.searchParams.get("limit") || 20),
     );
-  }
-  else if (path === "/admin/stocks" && req.method === "POST") {
+  } else if (path === "/admin/stocks" && req.method === "POST") {
     stocks.push({ ...body, id: `qa-added-${stocks.length}`, isActive: true });
     result = success(stocks.at(-1));
   } else if (path === "/admin/stocks") result = list(stocks);
@@ -320,7 +338,7 @@ const socketPrices = {
     open: stock.open,
     close: stock.close,
   },
-  "9999": {
+  9999: {
     ltp: 250.5,
     change: -2.1,
     changePercent: -0.83,
