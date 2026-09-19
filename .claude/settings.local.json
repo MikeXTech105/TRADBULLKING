@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(grep -n \"require.*models\" \"D:/Project/TRADBULLKING/backend/src/controllers\"/*.js)",
+      "Bash(grep:*)"
     ]
   }
 }

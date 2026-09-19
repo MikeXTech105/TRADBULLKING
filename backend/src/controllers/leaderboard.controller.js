@@ -2,6 +2,7 @@ const User = require('../models/User');
 const Order = require('../models/Order');
 const Position = require('../models/Position');
 const DummyLeaderboard = require('../models/DummyLeaderboard');
+const CustomCompetition = require('../models/CustomCompetition');
 const { successResponse, errorResponse } = require('../utils/response');
 const logger = require('../utils/logger');
 
@@ -12,6 +13,70 @@ const logger = require('../utils/logger');
  */
 const getLeaderboard = async (req, res) => {
   try {
+    const { filterType, competitionId } = req.query;
+
+    if (filterType === 'competition') {
+      if (!competitionId) return errorResponse(res, 'competitionId is required for competition leaderboard', 400);
+
+      const competition = await CustomCompetition.findById(competitionId);
+      if (!competition) return errorResponse(res, 'Competition not found', 404);
+
+      const participantIds = competition.participants.map(p => p.userId);
+
+      // If competition is completed, use snapshot dailyPnl from participants array
+      if (competition.status === 'COMPLETED') {
+        const participantMap = new Map(competition.participants.map(p => [p.userId.toString(), p.dailyPnl]));
+        const users = await User.find({ _id: { $in: participantIds } }).select('name profilePic dailyPnl totalTrades isPremium');
+        const ranked = users.map(u => ({
+          userId: u._id,
+          name: u.name,
+          profilePic: u.profilePic || null,
+          dailyPnl: participantMap.get(u._id.toString()) || 0,
+          totalTrades: u.totalTrades,
+          isPremium: u.isPremium,
+          isWinner: competition.winner?.userId?.toString() === u._id.toString(),
+        })).sort((a, b) => b.dailyPnl - a.dailyPnl).map((entry, i) => ({ rank: i + 1, ...entry }));
+
+        return successResponse(res, 'Competition leaderboard fetched', {
+          leaderboard: ranked,
+          total: ranked.length,
+          competition: {
+            id: competition._id,
+            title: competition.title,
+            status: competition.status,
+            prizePool: competition.prizePool,
+            winner: competition.winner,
+          },
+        });
+      }
+
+      // Live competition — use current dailyPnl
+      const users = await User.find({ _id: { $in: participantIds } }).select('name profilePic dailyPnl totalTrades isPremium');
+      const ranked = users.map(u => ({
+        userId: u._id,
+        name: u.name,
+        profilePic: u.profilePic || null,
+        dailyPnl: u.dailyPnl || 0,
+        totalTrades: u.totalTrades,
+        isPremium: u.isPremium,
+      })).sort((a, b) => b.dailyPnl - a.dailyPnl).map((entry, i) => ({ rank: i + 1, ...entry }));
+
+      return successResponse(res, 'Competition leaderboard fetched', {
+        leaderboard: ranked,
+        total: ranked.length,
+        competition: {
+          id: competition._id,
+          title: competition.title,
+          status: competition.status,
+          prizePool: competition.prizePool,
+          entryFee: competition.entryFee,
+          participantCount: competition.participantCount,
+          maxUsers: competition.maxUsers,
+        },
+      });
+    }
+    // else: fall through to existing general leaderboard logic
+
     const limit = parseInt(req.query.limit) || 50;
 
     // Fetch real premium users with P&L

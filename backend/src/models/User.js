@@ -2,6 +2,13 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const { TRIAL_HOURS, INITIAL_BALANCE } = require('../utils/constants');
 
+const generateReferralCode = () => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let code = 'TBK';
+  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+};
+
 const userSchema = new mongoose.Schema(
   {
     name: {
@@ -76,6 +83,31 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    userName: {
+      type: String,
+      sparse: true,
+      unique: true,
+      trim: true,
+      lowercase: true,
+    },
+    referralCode: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
+    referredBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+    withdrawableBalance: {
+      type: Number,
+      default: 0,
+    },
+    dailyPnl: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,
@@ -87,6 +119,14 @@ userSchema.index({ role: 1 });
 userSchema.index({ isPremium: 1 });
 userSchema.index({ totalPnl: -1 });
 userSchema.index({ isDummy: 1 });
+
+// Pre-save hook to auto-generate referralCode for new users
+userSchema.pre('save', function (next) {
+  if (this.isNew && !this.referralCode) {
+    this.referralCode = generateReferralCode();
+  }
+  next();
+});
 
 // Pre-save hook to hash password
 userSchema.pre('save', async function (next) {

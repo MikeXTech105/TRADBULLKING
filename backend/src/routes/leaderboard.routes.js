@@ -14,16 +14,28 @@ const { optionalAuth } = require('../middlewares/auth.middleware');
  * @swagger
  * /leaderboard:
  *   get:
- *     summary: Get combined leaderboard (real users + dummy entries), sorted by total P&L
+ *     summary: Get leaderboard — general (real users + dummy) or competition-specific
  *     tags: [Leaderboard]
  *     security: []
  *     parameters:
+ *       - in: query
+ *         name: filterType
+ *         schema:
+ *           type: string
+ *           enum: [general, competition]
+ *           default: general
+ *         description: "general = all premium + dummy entries sorted by totalPnl; competition = participants of a specific competition sorted by dailyPnl"
+ *       - in: query
+ *         name: competitionId
+ *         schema:
+ *           type: string
+ *         description: Required when filterType=competition. MongoDB ID of the CustomCompetition.
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
  *           default: 50
- *         description: Number of entries to return
+ *         description: Number of entries to return (applies to general leaderboard only)
  *     responses:
  *       200:
  *         description: Ranked leaderboard with P&L, win rate, and trade stats
@@ -55,6 +67,10 @@ const { optionalAuth } = require('../middlewares/auth.middleware');
  *                           type:
  *                             type: string
  *                             enum: [real, dummy]
+ *       400:
+ *         description: competitionId required when filterType=competition
+ *       404:
+ *         description: Competition not found
  */
 router.get('/', optionalAuth, leaderboardController.getLeaderboard);
 

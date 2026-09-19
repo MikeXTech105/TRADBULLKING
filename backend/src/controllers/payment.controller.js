@@ -9,7 +9,28 @@ const {
   PLATFORM_FEE,
   CREDIT_AMOUNT,
   DUMMY_BALANCE,
+  REFERRAL_BONUS,
 } = require('../utils/constants');
+
+/**
+ * Credit referral bonus to referrer on first successful payment
+ */
+const creditReferralBonus = async (userId) => {
+  try {
+    const user = await User.findById(userId).select('referredBy isPremium');
+    if (!user || !user.referredBy) return;
+    // Check if this is first successful payment (count SUCCESS payments for this user)
+    const successCount = await Payment.countDocuments({ userId, status: 'SUCCESS' });
+    if (successCount !== 1) return; // Only on the very first payment
+    // Credit bonus to referrer
+    await User.findByIdAndUpdate(user.referredBy, {
+      $inc: { withdrawableBalance: REFERRAL_BONUS },
+    });
+    logger.info(`Referral bonus of ₹${REFERRAL_BONUS} credited to referrer for user ${userId}`);
+  } catch (e) {
+    logger.error('creditReferralBonus error:', e.message);
+  }
+};
 
 /**
  * @route   POST /api/payments/create
@@ -124,6 +145,8 @@ const verifyPayment = async (req, res) => {
       payment.cashfreePaymentId = orderStatus.cfOrderId || orderId;
       await payment.save();
 
+      await creditReferralBonus(user._id);
+
       logger.info(`Payment verified and premium activated for user: ${user.email}`);
 
       return successResponse(res, 'Payment successful! Premium activated.', {
@@ -229,6 +252,10 @@ const paymentWebhook = async (req, res) => {
     }
 
     await payment.save();
+
+    if (orderStatus === 'PAID') {
+      await creditReferralBonus(payment.userId);
+    }
 
     return res.status(200).json({ success: true, message: 'Webhook processed' });
   } catch (error) {

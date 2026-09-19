@@ -20,7 +20,7 @@ const placeBuyOrder = async (userId, stockId, quantity, priceType = 'MARKET', li
 
   try {
     // Fetch user with session
-    const user = await User.findById(userId).session(session).select('+password');
+    const user = await User.findById(userId).session(session);
 
     if (!user) {
       throw new Error('User not found');
@@ -192,7 +192,7 @@ const placeSellOrder = async (userId, stockId, quantity, priceType = 'MARKET', l
 
   try {
     // Fetch user
-    const user = await User.findById(userId).session(session).select('+password');
+    const user = await User.findById(userId).session(session);
 
     if (!user) {
       throw new Error('User not found');
@@ -313,6 +313,7 @@ const placeSellOrder = async (userId, stockId, quantity, priceType = 'MARKET', l
     // Update trade stats
     user.totalTrades += 1;
     user.totalPnl += realizedPnl;
+    user.dailyPnl += realizedPnl;
 
     await user.save({ session });
 

@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "trading-app-collection-v2",
     "name": "TradBullKing API",
-    "description": "## TradBullKing — Paper Trading API Collection\n\n### Setup\n1. Set `baseUrl` variable → `http://localhost:5000/api`\n2. Register or login → `authToken` is auto-saved\n3. For admin endpoints, use `adminToken`\n\n### Balance Logic\n| Event | Balance |\n|-------|---------|\n| Register | ₹1 Crore (trial) |\n| Pay ₹500 | ₹5 Crore (premium) |\n| Daily reset (midnight) | Reset to 5Cr (premium only) |\n| Per trade | ₹2 from feeBalance |\n\n### Socket.IO — Real-Time\nUse the **Socket.IO** folder to test real-time events.\n\n**Server:** `http://localhost:5000`\n\n**Emit events:**\n- `subscribe:stocks` → `[\"2885\", \"11536\"]`\n- `unsubscribe:stocks` → `[\"2885\"]`\n- `subscribe:all` → no data\n\n**Listen events:**\n- `price:update` → `{ token, ltp, change, changePercent, high, low, open, close, volume }`\n- `candle:update` → `{ token, time, open, high, low, close, volume }`",
+    "description": "## TradBullKing — Paper Trading API Collection\n\n### Setup\n1. Set `baseUrl` variable → `http://localhost:5000/api`\n2. Register or login → `authToken` is auto-saved\n3. For admin endpoints, use `adminToken`\n\n### Balance Logic\n| Event | Balance |\n|-------|---------|\n| Register | ₹1 Crore (trial) |\n| Pay ₹500 | ₹5 Crore (premium) |\n| Daily reset (midnight) | Reset to 5Cr (premium only) |\n| Per trade | ₹2 from feeBalance |\n| Refer friend (first pay) | +₹125 to withdrawableBalance |\n| Win daily competition | +₹250–₹2,000 to withdrawableBalance |\n\n### Referral\n- Every user gets a unique code (`TBKXXXXXX`) on registration\n- Referred user enters your code at signup\n- You earn ₹125 when they make their first ₹500 payment\n\n### Daily Competition (3:45 PM IST, Mon–Fri)\nTop 5 by daily P&L win: ₹2000 / ₹1500 / ₹1000 / ₹500 / ₹250\n\n### Custom Competitions\n- Admin creates competitions with a cap and entry fee\n- Users join by paying entry fee from `withdrawableBalance`\n- Winner (highest daily P&L) takes the prize pool at 3:45 PM IST\n- View via `GET /leaderboard?filterType=competition&competitionId=<id>`\n\n### Withdrawal\n- Only `withdrawableBalance` can be withdrawn (min ₹1,000)\n- Use `POST /withdrawals/request` with bank details\n- **Auto-approved instantly** — no admin action needed\n\n### Socket.IO — Real-Time\nUse the **Socket.IO** folder to test real-time events.\n\n**Server:** `http://localhost:5000`\n\n**Emit events:**\n- `subscribe:stocks` → `[\"2885\", \"11536\"]`\n- `unsubscribe:stocks` → `[\"2885\"]`\n- `subscribe:all` → no data\n\n**Listen events:**\n- `price:update` → `{ token, ltp, change, changePercent, high, low, open, close, volume }`\n- `candle:update` → `{ token, time, open, high, low, close, volume }`",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -56,6 +56,12 @@
       "key": "paymentOrderId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "competitionId",
+      "value": "",
+      "type": "string",
+      "description": "Custom competition ID (from admin create or list endpoint)"
     }
   ],
   "item": [
@@ -91,14 +97,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"password123\",\n  \"phone\": \"9876543210\"\n}"
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"password123\",\n  \"phone\": \"9876543210\",\n  \"userName\": \"johndoe123\",\n  \"referralCode\": \"TBKXXXXXX\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/register",
               "host": ["{{baseUrl}}"],
               "path": ["auth", "register"]
             },
-            "description": "Register a new user. Gets 48-hour free trial automatically."
+            "description": "Register a new user. Gets 48-hour free trial automatically.\n\n**Required:** `name`, `email`, `password`, `userName` (unique, 3-30 chars, alphanumeric+underscore)\n**Optional:** `phone`, `referralCode` (a friend's referral code — they get ₹125 on your first payment)"
           }
         },
         {
@@ -1162,7 +1168,7 @@
       "description": "Trading leaderboard (public + private endpoints)",
       "item": [
         {
-          "name": "Get Leaderboard",
+          "name": "Get Leaderboard (General)",
           "request": {
             "method": "GET",
             "header": [],
@@ -1171,10 +1177,30 @@
               "host": ["{{baseUrl}}"],
               "path": ["leaderboard"],
               "query": [
-                { "key": "limit", "value": "50" }
+                { "key": "limit", "value": "50" },
+                { "key": "filterType", "value": "general", "disabled": true }
               ]
             },
             "description": "Get merged leaderboard of real users + dummy entries, sorted by totalPnl."
+          }
+        },
+        {
+          "name": "Get Leaderboard (Competition)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/leaderboard?filterType=competition&competitionId={{competitionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["leaderboard"],
+              "query": [
+                { "key": "filterType", "value": "competition" },
+                { "key": "competitionId", "value": "{{competitionId}}" }
+              ]
+            },
+            "description": "Get leaderboard for a specific custom competition.\n\n- For **COMPLETED** competitions: returns snapshots stored in participants array\n- For **OPEN/FULL** competitions: returns live `dailyPnl` from User documents\n- Response includes `competition` metadata and `isWinner` flag for completed competitions\n\n**Required:** User must have joined the competition (otherwise 403)."
           }
         },
         {
@@ -1290,6 +1316,262 @@
               "path": ["admin", "dashboard"]
             },
             "description": "Check the AngelOne WebSocket connection status via the admin dashboard REST API.\n\nLook for `websocket` field in the response which shows:\n- `isConnected`: true/false\n- `subscribedTokensCount`: number of active subscriptions\n- `reconnectAttempts`: reconnection attempts"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Withdrawals",
+      "description": "Withdrawal of competition prizes and referral bonuses. Minimum ₹1,000. Trading balance (dummyBalance) is NOT withdrawable.",
+      "item": [
+        {
+          "name": "Get Withdrawable Balance",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/withdrawals/balance",
+              "host": ["{{baseUrl}}"],
+              "path": ["withdrawals", "balance"]
+            },
+            "description": "Returns your current withdrawableBalance (competition prizes + referral bonuses only)."
+          }
+        },
+        {
+          "name": "Request Withdrawal",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const data = pm.response.json();",
+                  "    pm.environment.set('withdrawalId', data.data.withdrawal._id);",
+                  "    pm.test('Withdrawal requested', () => pm.expect(data.success).to.be.true);",
+                  "    console.log('Remaining withdrawable balance:', data.data.withdrawableBalance);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 1500,\n  \"bankDetails\": {\n    \"accountNumber\": \"1234567890\",\n    \"ifsc\": \"HDFC0001234\",\n    \"accountName\": \"John Doe\",\n    \"bankName\": \"HDFC Bank\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/withdrawals/request",
+              "host": ["{{baseUrl}}"],
+              "path": ["withdrawals", "request"]
+            },
+            "description": "Submit a withdrawal request.\n- Minimum: ₹1,000\n- Auto-approved instantly if withdrawableBalance ≥ amount\n- Amount deducted from withdrawableBalance immediately\n- No admin approval needed"
+          }
+        },
+        {
+          "name": "Get Withdrawal History",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/withdrawals/history?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["withdrawals", "history"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Withdrawals",
+      "description": "Read-only view of all withdrawals. Withdrawals are auto-approved — no manual action needed.",
+      "item": [
+        {
+          "name": "List All Withdrawals",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/withdrawals?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "withdrawals"],
+              "query": [
+                { "key": "status", "value": "APPROVED", "disabled": true, "description": "APPROVED (leave empty for all)" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "View all withdrawal records. All withdrawals are auto-approved at request time — no manual approve/reject needed."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Competition",
+      "description": "Daily trading competition results — top 5 by daily P&L win ₹250–₹2,000",
+      "item": [
+        {
+          "name": "Get Competition Results",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/competition/results?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "competition", "results"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "Get paginated daily competition results. Each entry shows top 5 winners, their daily P&L, and prizes awarded.\n\n**Schedule:** Results announced daily at 3:45 PM IST (Mon–Fri)\n\n**Prizes:**\n| Rank | Prize |\n|------|-------|\n| 1st | ₹2,000 |\n| 2nd | ₹1,500 |\n| 3rd | ₹1,000 |\n| 4th | ₹500 |\n| 5th | ₹250 |"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Competitions",
+      "description": "Custom paid competitions created by admin. Entry fee deducted from withdrawableBalance. Winner-takes-all prize at 3:45 PM IST.\n\n**Flow:**\n1. Admin creates competition (`POST /admin/competitions`)\n2. User lists open competitions (`GET /competitions`)\n3. User joins by paying entry fee (`POST /competitions/:id/join`)\n4. View live leaderboard (`GET /leaderboard?filterType=competition&competitionId=<id>`)\n5. At 3:45 PM IST — winner gets prize pool, admin gets cut",
+      "item": [
+        {
+          "name": "List Open Competitions",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/competitions",
+              "host": ["{{baseUrl}}"],
+              "path": ["competitions"]
+            },
+            "description": "List all OPEN competitions available to join. Does not include FULL or COMPLETED competitions."
+          }
+        },
+        {
+          "name": "My Competitions",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/competitions/my",
+              "host": ["{{baseUrl}}"],
+              "path": ["competitions", "my"]
+            },
+            "description": "Get all competitions where the current user is a participant (OPEN, FULL, or COMPLETED)."
+          }
+        },
+        {
+          "name": "Join Competition",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test('Joined competition', () => pm.expect(data.success).to.be.true);",
+                  "    console.log('Remaining withdrawable balance:', data.data.withdrawableBalance);",
+                  "    console.log('Competition status:', data.data.competition.status);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/competitions/{{competitionId}}/join",
+              "host": ["{{baseUrl}}"],
+              "path": ["competitions", "{{competitionId}}", "join"]
+            },
+            "description": "Join a competition. Entry fee is deducted from your `withdrawableBalance`.\n\n**Requirements:**\n- Must be a premium user (`isPremium: true`)\n- Must have sufficient `withdrawableBalance` ≥ `entryFee`\n- Competition must be OPEN (not FULL or COMPLETED)\n- Cannot join the same competition twice\n\n**Effect:** If joining fills the last slot, competition status becomes FULL."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Custom Competitions",
+      "description": "Admin management of custom paid competitions. Create competitions, list all (including FULL/COMPLETED).",
+      "item": [
+        {
+          "name": "Create Competition",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const data = pm.response.json();",
+                  "    pm.collectionVariables.set('competitionId', data.data._id);",
+                  "    pm.test('Competition created', () => pm.expect(data.success).to.be.true);",
+                  "    console.log('Competition ID:', data.data._id);",
+                  "    console.log('Status:', data.data.status);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Elite Traders Cup\",\n  \"description\": \"10-user winner-takes-all competition\",\n  \"maxUsers\": 10,\n  \"entryFee\": 100,\n  \"adminPercentage\": 3\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/competitions",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "competitions"]
+            },
+            "description": "Create a new paid competition.\n\n**Required:** `title`, `maxUsers` (≥2), `entryFee`\n**Optional:** `description`, `adminPercentage` (default 3%)\n\n**Prize pool calculation:** `participantCount × entryFee × (1 - adminPercentage/100)`\n\nOnce created (status: OPEN), users can join via `POST /competitions/:id/join`."
+          }
+        },
+        {
+          "name": "List All Competitions",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/competitions?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "competitions"],
+              "query": [
+                { "key": "status", "value": "OPEN", "disabled": true, "description": "Filter: OPEN | FULL | COMPLETED" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "List all competitions (OPEN, FULL, COMPLETED). Optionally filter by status.\n\nEach entry includes participantCount, prizePool, winner (if COMPLETED), and createdBy."
           }
         }
       ]

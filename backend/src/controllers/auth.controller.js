@@ -33,12 +33,27 @@ const generateRefreshToken = (userId) => {
  */
 const register = async (req, res) => {
   try {
-    const { name, email, password, phone } = req.body;
+    const { name, email, password, phone, userName, referralCode } = req.body;
 
     // Check if email already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return errorResponse(res, 'Email is already registered', 409);
+    }
+
+    // Check userName uniqueness
+    const existingUserName = await User.findOne({ userName: userName.toLowerCase().trim() });
+    if (existingUserName) {
+      return errorResponse(res, 'Username already taken', 409);
+    }
+
+    // Handle referral code
+    let referredBy = null;
+    if (referralCode) {
+      const referrer = await User.findOne({ referralCode: referralCode.toUpperCase() });
+      if (referrer) {
+        referredBy = referrer._id;
+      }
     }
 
     // Create new user — trialEndDate and dummyBalance are also set by pre-save hook as fallback
@@ -47,9 +62,11 @@ const register = async (req, res) => {
       email,
       password,
       phone: phone || undefined,
+      userName,
       role: 'user',
       dummyBalance: INITIAL_BALANCE, // 1 crore on registration
       lastLogin: new Date(),
+      referredBy,
     });
 
     await user.save();
@@ -75,6 +92,8 @@ const register = async (req, res) => {
           feeBalance: user.feeBalance,
           totalPnl: user.totalPnl,
           totalTrades: user.totalTrades,
+          userName: user.userName,
+          referralCode: user.referralCode,
         },
         tokens: {
           accessToken,

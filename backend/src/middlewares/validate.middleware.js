@@ -43,6 +43,21 @@ const registerValidation = [
     .matches(/^[6-9]\d{9}$/)
     .withMessage('Please provide a valid 10-digit Indian phone number'),
 
+  body('userName')
+    .trim()
+    .notEmpty()
+    .withMessage('Username is required')
+    .isLength({ min: 3, max: 30 })
+    .withMessage('Username must be 3-30 characters')
+    .matches(/^[a-zA-Z0-9_]+$/)
+    .withMessage('Username can only contain letters, numbers, and underscores'),
+
+  body('referralCode')
+    .optional()
+    .trim()
+    .isLength({ min: 6, max: 12 })
+    .withMessage('Invalid referral code'),
+
   validate,
 ];
 

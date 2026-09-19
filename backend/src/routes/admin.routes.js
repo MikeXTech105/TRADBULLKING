@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/admin.controller');
+const withdrawalController = require('../controllers/withdrawal.controller');
 const { authenticate, isAdmin } = require('../middlewares/auth.middleware');
 const { addStockValidation, addDummyLeaderboardValidation } = require('../middlewares/validate.middleware');
 
@@ -511,5 +512,83 @@ router.put('/leaderboard/:id', adminController.updateDummyLeaderboard);
  *         description: Entry deleted
  */
 router.delete('/leaderboard/:id', adminController.deleteDummyLeaderboard);
+
+// =================== WITHDRAWAL MANAGEMENT ===================
+// Withdrawals are auto-approved — admin route is read-only for record-keeping
+
+router.get('/withdrawals', withdrawalController.adminListWithdrawals);
+
+// =================== COMPETITION RESULTS ===================
+
+router.get('/competition/results', adminController.getCompetitionResults);
+
+// =================== CUSTOM COMPETITIONS ===================
+
+/**
+ * @swagger
+ * /admin/competitions:
+ *   post:
+ *     summary: Create a new paid competition
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [title, maxUsers, entryFee]
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 example: "Elite Traders Cup"
+ *               description:
+ *                 type: string
+ *                 example: "10-user winner-takes-all competition"
+ *               maxUsers:
+ *                 type: integer
+ *                 example: 10
+ *                 minimum: 2
+ *               entryFee:
+ *                 type: number
+ *                 example: 100
+ *               adminPercentage:
+ *                 type: number
+ *                 example: 3
+ *                 description: "% of total pool that goes to admin. Default: 3"
+ *     responses:
+ *       201:
+ *         description: Competition created. Users can now join.
+ */
+router.post('/competitions', adminController.createCompetition);
+
+/**
+ * @swagger
+ * /admin/competitions:
+ *   get:
+ *     summary: List all competitions
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [OPEN, FULL, COMPLETED]
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Paginated list of all competitions
+ */
+router.get('/competitions', adminController.listCompetitions);
 
 module.exports = router;

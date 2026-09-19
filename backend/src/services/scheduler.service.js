@@ -5,8 +5,10 @@ const User = require('../models/User');
 const Stock = require('../models/Stock');
 const Position = require('../models/Position');
 const LeaderboardHistory = require('../models/LeaderboardHistory');
+const CompetitionResult = require('../models/CompetitionResult');
+const CustomCompetition = require('../models/CustomCompetition');
 const logger = require('../utils/logger');
-const { DUMMY_BALANCE } = require('../utils/constants');
+const { DUMMY_BALANCE, COMPETITION_PRIZES } = require('../utils/constants');
 const tradeService = require('./trade.service');
 
 const INSTRUMENTS_FILE = path.join(__dirname, '../../angelone_instruments.json');
@@ -266,11 +268,169 @@ const resetPremiumUsers = async () => {
   try {
     const result = await User.updateMany(
       { role: 'user', isActive: true, isPremium: true, isDummy: { $ne: true } },
-      { $set: { dummyBalance: DUMMY_BALANCE, totalPnl: 0, totalTrades: 0 } }
+      { $set: { dummyBalance: DUMMY_BALANCE, totalPnl: 0, totalTrades: 0, dailyPnl: 0 } }
     );
     logger.info(`Daily reset: ${result.modifiedCount} real premium users reset`);
   } catch (error) {
     logger.error('resetPremiumUsers error:', error.message);
+  }
+};
+
+// =================== COMPETITION ===================
+
+const announceCompetition = async () => {
+  try {
+    // Get today's date range in IST
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const todayIST = new Date(now.getTime() + istOffset);
+    todayIST.setUTCHours(0, 0, 0, 0);
+    const todayStart = new Date(todayIST.getTime() - istOffset);
+    const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+
+    // Check if already announced today
+    const existing = await CompetitionResult.findOne({ date: { $gte: todayStart, $lt: todayEnd } });
+    if (existing) {
+      logger.info('Competition already announced today');
+      return;
+    }
+
+    // Get all active premium non-dummy users with positive dailyPnl
+    const users = await User.find({
+      role: 'user',
+      isActive: true,
+      isPremium: true,
+      isDummy: { $ne: true },
+      dailyPnl: { $gt: 0 },
+    }).select('name dailyPnl withdrawableBalance').sort({ dailyPnl: -1 }).limit(5);
+
+    if (!users.length) {
+      logger.info('No eligible users for competition today');
+      return;
+    }
+
+    const results = [];
+    const bulkOps = [];
+
+    for (let i = 0; i < users.length; i++) {
+      const prize = COMPETITION_PRIZES[i] || 0;
+      results.push({ rank: i + 1, userId: users[i]._id, name: users[i].name, dailyPnl: users[i].dailyPnl, prize });
+      if (prize > 0) {
+        bulkOps.push({ updateOne: { filter: { _id: users[i]._id }, update: { $inc: { withdrawableBalance: prize } } } });
+      }
+    }
+
+    if (bulkOps.length) await User.bulkWrite(bulkOps);
+
+    await CompetitionResult.create({
+      date: now,
+      results,
+      totalParticipants: await User.countDocuments({ role: 'user', isActive: true, isPremium: true, isDummy: { $ne: true }, dailyPnl: { $gt: 0 } }),
+      announcedAt: now,
+    });
+
+    logger.info(`Competition announced: ${results.length} winners, prizes distributed`);
+  } catch (error) {
+    logger.error('announceCompetition error:', error.message);
+  }
+};
+
+// =================== CUSTOM COMPETITIONS ===================
+
+const closeCustomCompetitions = async () => {
+  try {
+    // Find all OPEN or FULL competitions for today that haven't been completed
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const todayIST = new Date(now.getTime() + istOffset);
+    todayIST.setUTCHours(0, 0, 0, 0);
+    const todayStart = new Date(todayIST.getTime() - istOffset);
+    const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+
+    const competitions = await CustomCompetition.find({
+      status: { $in: ['OPEN', 'FULL'] },
+      date: { $gte: todayStart, $lt: todayEnd },
+    });
+
+    if (!competitions.length) {
+      logger.info('No custom competitions to close today');
+      return;
+    }
+
+    // Find admin user for admin cut credit
+    const adminUser = await User.findOne({ role: 'admin', isActive: true }).select('_id withdrawableBalance');
+
+    for (const competition of competitions) {
+      try {
+        if (!competition.participants.length) {
+          // No participants — just close it, refund not needed (no one joined)
+          competition.status = 'COMPLETED';
+          competition.completedAt = now;
+          await competition.save();
+          continue;
+        }
+
+        // Snapshot each participant's current dailyPnl
+        const participantIds = competition.participants.map(p => p.userId);
+        const users = await User.find({ _id: { $in: participantIds } }).select('_id dailyPnl name');
+        const userMap = new Map(users.map(u => [u._id.toString(), u]));
+
+        let topUser = null;
+        let topPnl = -Infinity;
+
+        for (const participant of competition.participants) {
+          const u = userMap.get(participant.userId.toString());
+          const pnl = u ? u.dailyPnl : 0;
+          participant.dailyPnl = pnl;
+          // Only consider existing users as potential winners
+          if (u && pnl > topPnl) {
+            topPnl = pnl;
+            topUser = u;
+          }
+        }
+
+        // Calculate final prize pool and admin cut based on actual participants
+        const totalCollected = competition.participantCount * competition.entryFee;
+        const adminCut = parseFloat((totalCollected * (competition.adminPercentage / 100)).toFixed(2));
+        const prizePool = parseFloat((totalCollected - adminCut).toFixed(2));
+
+        competition.prizePool = prizePool;
+        competition.adminCut = adminCut;
+
+        // Award winner
+        if (topUser && prizePool > 0) {
+          await User.findByIdAndUpdate(topUser._id, { $inc: { withdrawableBalance: prizePool } });
+          competition.winner = {
+            userId: topUser._id,
+            name: topUser.name,
+            dailyPnl: topPnl,
+            prize: prizePool,
+          };
+          logger.info(`Competition ${competition._id} winner: ${topUser.name}, prize: ₹${prizePool}`);
+        }
+
+        // Credit admin cut
+        if (adminCut > 0) {
+          if (adminUser) {
+            await User.findByIdAndUpdate(adminUser._id, { $inc: { withdrawableBalance: adminCut } });
+          } else {
+            logger.warn(`Competition ${competition._id}: admin cut ₹${adminCut} could not be credited — no active admin user found`);
+          }
+        }
+
+        competition.status = 'COMPLETED';
+        competition.completedAt = now;
+        await competition.save();
+
+        logger.info(`Custom competition ${competition.title} (${competition._id}) completed`);
+      } catch (err) {
+        logger.error(`Error closing competition ${competition._id}: ${err.message}`);
+      }
+    }
+
+    logger.info(`Closed ${competitions.length} custom competition(s)`);
+  } catch (error) {
+    logger.error('closeCustomCompetitions error:', error.message);
   }
 };
 
@@ -304,6 +464,13 @@ const startDailyScheduler = () => {
     logger.info('=== Daily leaderboard & balance reset completed ===');
   });
 
+  // Announce daily competition at 3:45 PM IST (10:15 UTC) on weekdays
+  // Also close all custom competitions for today
+  cron.schedule('15 10 * * 1-5', async () => {
+    await announceCompetition();
+    await closeCustomCompetitions();
+  });
+
   // Auto-refresh AngelOne session every 22 hours
   cron.schedule('0 */22 * * *', async () => {
     const angeloneConfig = require('../config/angelone');
@@ -326,4 +493,4 @@ const startDailyScheduler = () => {
   logger.info('Scheduler initialized');
 };
 
-module.exports = { startDailyScheduler, runDummyUserTrades, addDummyLeaderboardEntries };
+module.exports = { startDailyScheduler, runDummyUserTrades, addDummyLeaderboardEntries, announceCompetition, closeCustomCompetitions };

@@ -20,10 +20,40 @@ Comprehensive paper trading platform with AngelOne SmartAPI integration, real-ti
 | 2 | **Pay ₹500** | ₹5,00,00,000 (5 crore) — premium |
 | 3 | **Daily reset (midnight)** | Reset to 5cr (premium users only) |
 | 4 | **Each trade** | ₹2 deducted from feeBalance |
+| 5 | **Refer a friend** | +₹125 to withdrawableBalance (on their first payment) |
+| 6 | **Win daily competition** | ₹250–₹2000 added to withdrawableBalance |
 
 - Trial period: 48 hours from registration
 - Payment breakdown: ₹99 platform fee + ₹401 to feeBalance
 - Leaderboard snapshots saved every 24 hours before reset
+
+### Referral System
+- Every user gets a unique referral code (format: \`TBKXXXXXX\`)
+- Share your referral code or link with others
+- When a referred user makes their **first ₹500 payment**, you receive **₹125** in your withdrawableBalance
+
+### Daily Competition (3:45 PM IST, Mon–Fri)
+Top 5 users by daily P&L win prizes added to withdrawableBalance:
+| Rank | Prize |
+|------|-------|
+| 1st | ₹2,000 |
+| 2nd | ₹1,500 |
+| 3rd | ₹1,000 |
+| 4th | ₹500 |
+| 5th | ₹250 |
+
+### Withdrawal
+- Only \`withdrawableBalance\` (competition + referral) can be withdrawn
+- Minimum withdrawal: ₹1,000
+- Trading balance (dummyBalance) is **not** withdrawable
+- Requests auto-approved instantly — no admin action needed
+
+### Custom Competitions
+- Admin creates paid competitions with a set user cap and entry fee
+- Users join by paying the entry fee from their \`withdrawableBalance\`
+- When all slots are filled, competition is marked FULL and hidden from users
+- At 3:45 PM IST, prize pool (minus admin %) goes to the user with highest daily P&L
+- View leaderboard via \`GET /leaderboard?filterType=competition&competitionId=<id>\`
 
 ---
 
@@ -109,6 +139,7 @@ The backend maintains a persistent WebSocket to AngelOne SmartAPI:
           properties: {
             id: { type: 'string' },
             name: { type: 'string' },
+            userName: { type: 'string', example: 'john_doe', description: 'Unique username (alphanumeric + underscore)' },
             email: { type: 'string', format: 'email' },
             phone: { type: 'string' },
             role: { type: 'string', enum: ['admin', 'user'] },
@@ -118,8 +149,81 @@ The backend maintains a persistent WebSocket to AngelOne SmartAPI:
             isTrialActive: { type: 'boolean' },
             dummyBalance: { type: 'number', example: 50000000 },
             feeBalance: { type: 'number', example: 401 },
+            withdrawableBalance: { type: 'number', example: 2125, description: 'Competition prizes + referral bonuses — withdrawable' },
             totalPnl: { type: 'number' },
+            dailyPnl: { type: 'number', description: 'P&L for today only — resets at midnight, used for competition' },
             totalTrades: { type: 'integer' },
+            referralCode: { type: 'string', example: 'TBKX3A9Z', description: 'Share this code to earn referral bonuses' },
+            referredBy: { type: 'string', nullable: true, description: 'User ID of referrer' },
+          },
+        },
+        WithdrawalRequest: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            userId: { type: 'string' },
+            amount: { type: 'number', example: 1500 },
+            status: { type: 'string', enum: ['PENDING', 'APPROVED', 'REJECTED'] },
+            bankDetails: {
+              type: 'object',
+              properties: {
+                accountNumber: { type: 'string' },
+                ifsc: { type: 'string' },
+                accountName: { type: 'string' },
+                bankName: { type: 'string' },
+              },
+            },
+            rejectionReason: { type: 'string', nullable: true },
+            processedAt: { type: 'string', format: 'date-time', nullable: true },
+          },
+        },
+        CompetitionResult: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            date: { type: 'string', format: 'date-time' },
+            results: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  rank: { type: 'integer', example: 1 },
+                  userId: { type: 'string' },
+                  name: { type: 'string' },
+                  dailyPnl: { type: 'number' },
+                  prize: { type: 'number', example: 2000 },
+                },
+              },
+            },
+            totalParticipants: { type: 'integer' },
+            announcedAt: { type: 'string', format: 'date-time' },
+          },
+        },
+        CustomCompetition: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            title: { type: 'string', example: 'Elite Traders Cup' },
+            description: { type: 'string', example: '10-user winner-takes-all competition' },
+            maxUsers: { type: 'integer', example: 10 },
+            entryFee: { type: 'number', example: 100 },
+            adminPercentage: { type: 'number', example: 3, description: '% of total pool deducted as admin fee' },
+            status: { type: 'string', enum: ['OPEN', 'FULL', 'COMPLETED'], example: 'OPEN' },
+            participantCount: { type: 'integer', example: 4 },
+            prizePool: { type: 'number', example: 970, description: 'participantCount × entryFee × (1 - adminPercentage/100)' },
+            adminCut: { type: 'number', example: 30 },
+            winner: {
+              type: 'object',
+              nullable: true,
+              properties: {
+                userId: { type: 'string' },
+                name: { type: 'string' },
+                dailyPnl: { type: 'number' },
+                prize: { type: 'number' },
+              },
+            },
+            date: { type: 'string', format: 'date-time', description: 'Competition date (IST midnight)' },
+            completedAt: { type: 'string', format: 'date-time', nullable: true },
           },
         },
         Stock: {
@@ -316,6 +420,9 @@ The backend maintains a persistent WebSocket to AngelOne SmartAPI:
       { name: 'Leaderboard', description: 'Trading leaderboard and user profiles' },
       { name: 'Watchlist', description: 'User watchlist management' },
       { name: 'Admin', description: 'Admin-only endpoints (require admin role)' },
+      { name: 'Withdrawals', description: 'Withdrawal requests — only withdrawableBalance (competition prizes + referral bonuses) can be withdrawn. Min ₹1,000. Auto-approved.' },
+      { name: 'Competition', description: 'Daily trading competition — top 5 by daily P&L win ₹250–₹2,000. Results at 3:45 PM IST on weekdays.' },
+      { name: 'Competitions', description: 'Paid custom competitions created by admin. Users join by paying the entry fee from withdrawableBalance. Winner-takes-all at 3:45 PM IST.' },
       {
         name: 'WebSocket',
         description: `

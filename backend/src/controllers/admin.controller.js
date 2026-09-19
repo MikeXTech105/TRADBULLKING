@@ -6,6 +6,8 @@ const Order = require('../models/Order');
 const Position = require('../models/Position');
 const Payment = require('../models/Payment');
 const DummyLeaderboard = require('../models/DummyLeaderboard');
+const CompetitionResult = require('../models/CompetitionResult');
+const CustomCompetition = require('../models/CustomCompetition');
 const angeloneService = require('../services/angelone.service');
 const angeloneConfig = require('../config/angelone');
 const wsService = require('../services/websocket.service');
@@ -751,6 +753,90 @@ const getAllStocks = async (req, res) => {
   }
 };
 
+// =================== COMPETITION RESULTS ===================
+
+/**
+ * @route   GET /api/admin/competition/results
+ * @desc    Get paginated competition results
+ */
+const getCompetitionResults = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    const total = await CompetitionResult.countDocuments();
+    const results = await CompetitionResult.find().sort({ date: -1 }).skip(skip).limit(limit).populate('results.userId', 'name email userName');
+    return paginatedResponse(res, 'Competition results fetched', results, { total, page, limit, pages: Math.ceil(total / limit) });
+  } catch (error) {
+    logger.error('getCompetitionResults error:', error.message);
+    return errorResponse(res, 'Failed to fetch competition results', 500);
+  }
+};
+
+// =================== CUSTOM COMPETITIONS ===================
+
+// POST /api/admin/competitions
+const createCompetition = async (req, res) => {
+  try {
+    const { title, description, maxUsers, entryFee, adminPercentage = 3 } = req.body;
+
+    if (!title || !maxUsers || !entryFee) {
+      return errorResponse(res, 'title, maxUsers, and entryFee are required', 400);
+    }
+    if (maxUsers < 2) return errorResponse(res, 'maxUsers must be at least 2', 400);
+    if (entryFee < 1) return errorResponse(res, 'entryFee must be at least ₹1', 400);
+    if (adminPercentage < 0 || adminPercentage > 100) return errorResponse(res, 'adminPercentage must be 0-100', 400);
+
+    // Set date to today (IST midnight)
+    const now = new Date();
+    const ist = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
+    ist.setUTCHours(0, 0, 0, 0);
+    const today = new Date(ist.getTime() - 5.5 * 60 * 60 * 1000);
+
+    const competition = await CustomCompetition.create({
+      title,
+      description: description || '',
+      maxUsers,
+      entryFee,
+      adminPercentage,
+      prizePool: 0, // updates as users join
+      adminCut: 0,
+      createdBy: req.user._id,
+      date: today,
+    });
+
+    logger.info(`Admin ${req.user._id} created competition: ${competition._id}`);
+    return successResponse(res, 'Competition created successfully', competition, 201);
+  } catch (error) {
+    logger.error('createCompetition error:', error.message);
+    return errorResponse(res, 'Failed to create competition', 500);
+  }
+};
+
+// GET /api/admin/competitions
+const listCompetitions = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+    const status = req.query.status;
+    const query = status ? { status: status.toUpperCase() } : {};
+    const total = await CustomCompetition.countDocuments(query);
+    const competitions = await CustomCompetition.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate('winner.userId', 'name email userName')
+      .populate('createdBy', 'name email');
+    return paginatedResponse(res, 'Competitions fetched', competitions, {
+      total, page, limit, pages: Math.ceil(total / limit),
+    });
+  } catch (error) {
+    logger.error('listCompetitions error:', error.message);
+    return errorResponse(res, 'Failed to fetch competitions', 500);
+  }
+};
+
 module.exports = {
   getAllUsers,
   getUserDetail,
@@ -770,4 +856,7 @@ module.exports = {
   deleteDummyLeaderboard,
   getDashboard,
   getAllStocks,
+  getCompetitionResults,
+  createCompetition,
+  listCompetitions,
 };
