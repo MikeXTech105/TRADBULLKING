@@ -11,6 +11,13 @@ import { formatINR } from "../../utils/format";
 import { PageHeader } from "../../components/DataView";
 import { SlowNotice } from "../../components/Feedback";
 import { BrandLogo } from "../../components/Brand";
+import {
+  toastError,
+  toastInfo,
+  toastLoading,
+  toastSuccess,
+} from "../../services/toastService";
+import { PLATFORM_OFFERING } from "../../config/platform";
 export default function Membership() {
   const user = useSelector((s) => s.auth.user);
   const pendingKey = `tbk_pending_payment_${user?.id}`;
@@ -39,12 +46,22 @@ export default function Membership() {
           : "Payment succeeded. Membership activation is being processed. Refresh your account shortly.",
       );
       sessionStorage.removeItem(pendingKey);
+      toastSuccess(
+        profile.isPremium
+          ? "Payment successful. Membership activated."
+          : "Payment verified successfully. Membership activation is processing.",
+        { id: "payment-processing" },
+      );
     } else
       setMessage(
         record.status === "FAILED"
           ? "Payment was not completed. You can try again."
           : "Payment is pending. Verify again shortly to check its status.",
       );
+    if (record.status === "FAILED")
+      toastError("Payment failed. Please try again.", { id: "payment-processing" });
+    else if (record.status !== "SUCCESS")
+      toastInfo("Payment verification pending.", { id: "payment-processing" });
   }
   async function begin() {
     if (lock.current) return;
@@ -52,6 +69,7 @@ export default function Membership() {
     setBusy(true);
     setError("");
     setMessage("");
+    toastLoading("Payment processing…", { id: "payment-processing" });
     try {
       const next = await paymentService.create();
       if (!next.orderId || !next.paymentSessionId)
@@ -64,12 +82,14 @@ export default function Membership() {
       setStatus("PENDING");
       const result = await paymentService.checkout(next.paymentSessionId);
       if (result?.error)
-        setError(
+        throw new Error(
           result.error.message || "Payment checkout could not be completed.",
         );
       await verify(next.orderId);
     } catch (err) {
-      setError(errorMessage(err));
+      const detail = errorMessage(err, "Payment failed. Please try again.");
+      setError(detail);
+      toastError(detail, { id: "payment-processing" });
     } finally {
       lock.current = false;
       setBusy(false);
@@ -80,10 +100,13 @@ export default function Membership() {
     lock.current = true;
     setBusy(true);
     setError("");
+    toastLoading("Verifying payment…", { id: "payment-processing" });
     try {
       await verify(orderId);
     } catch (err) {
-      setError(errorMessage(err));
+      const detail = errorMessage(err, "Payment verification failed.");
+      setError(detail);
+      toastError(detail, { id: "payment-processing" });
     } finally {
       lock.current = false;
       setBusy(false);
@@ -94,6 +117,7 @@ export default function Membership() {
     lock.current = true;
     setBusy(true);
     setError("");
+    toastLoading("Payment processing…", { id: "payment-processing" });
     try {
       const result = await paymentService.checkout(payment.paymentSessionId);
       if (result?.error)
@@ -102,7 +126,9 @@ export default function Membership() {
         );
       await verify(orderId);
     } catch (err) {
-      setError(errorMessage(err));
+      const detail = errorMessage(err, "Payment failed. Please try again.");
+      setError(detail);
+      toastError(detail, { id: "payment-processing" });
     } finally {
       lock.current = false;
       setBusy(false);
@@ -124,18 +150,22 @@ export default function Membership() {
           </span>
           <h2>Membership plan</h2>
           <div className="membership-price">
-            <strong>{formatINR(payment?.amount ?? 500, 0)}</strong>
+            <strong>
+              {formatINR(payment?.amount ?? PLATFORM_OFFERING.membershipTotal, 0)}
+            </strong>
             <span> / activation or recharge</span>
           </div>
           <p className="membership-breakdown">
-            ₹99 platform fee + ₹401 fee balance = ₹500 total
+            {formatINR(PLATFORM_OFFERING.platformFee, 0)} platform fee +{" "}
+            {formatINR(PLATFORM_OFFERING.feeBalanceCredit, 0)} fee balance ={" "}
+            {formatINR(PLATFORM_OFFERING.membershipTotal, 0)} total
           </p>
           <ul>
             {[
               "Continue trading beyond your free trial",
-              "₹5 crore dummy trading balance on activation",
-              "₹401 credited to your trading fee balance",
-              "₹2 fee per trade, confirmed by the server",
+              `${formatINR(PLATFORM_OFFERING.activatedVirtualBalance, 0)} dummy trading balance on activation`,
+              `${formatINR(PLATFORM_OFFERING.feeBalanceCredit, 0)} credited to your trading fee balance`,
+              `${formatINR(PLATFORM_OFFERING.tradeFee, 0)} fee per trade, confirmed by the server`,
             ].map((x) => (
               <li key={x}>
                 <Check size={16} />
@@ -174,15 +204,31 @@ export default function Membership() {
           <dl className="detail-list">
             <div>
               <dt>Platform fee</dt>
-              <dd>{formatINR(breakdown?.platformFee ?? 99, 0)}</dd>
+              <dd>
+                {formatINR(
+                  breakdown?.platformFee ?? PLATFORM_OFFERING.platformFee,
+                  0,
+                )}
+              </dd>
             </div>
             <div>
               <dt>Credit to fee balance</dt>
-              <dd>{formatINR(breakdown?.creditToFeeBalance ?? 401, 0)}</dd>
+              <dd>
+                {formatINR(
+                  breakdown?.creditToFeeBalance ??
+                    PLATFORM_OFFERING.feeBalanceCredit,
+                  0,
+                )}
+              </dd>
             </div>
             <div className="total-row">
               <dt>Total payment</dt>
-              <dd>{formatINR(breakdown?.totalAmount ?? 500, 0)}</dd>
+              <dd>
+                {formatINR(
+                  breakdown?.totalAmount ?? PLATFORM_OFFERING.membershipTotal,
+                  0,
+                )}
+              </dd>
             </div>
           </dl>
           <p className="membership-note">

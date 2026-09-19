@@ -29,6 +29,8 @@ Admin: login, dashboard, user search/filter/details/trades/P&L/access toggle, st
 
 All application data uses the published API. Backend profiles determine roles, trading eligibility, trial/premium state and balances. No optimistic financial balance changes or fabricated market data are used. User/admin tokens are stored separately; remember-me persists user tokens, unchecked users and administrators use session storage. Axios queues concurrent refreshes and retries once; logout or a newer session cannot be overwritten by an older refresh. Passwords and AngelOne credentials are never persisted.
 
+Registration requires explicit acceptance of the public Terms & Conditions and Privacy Policy. Legal document versions and shared commercial display values are centralized in `src/config/platform.js`. The published registration API does not currently accept or persist legal-acceptance evidence, so the frontend contract remains unchanged; the required backend enhancement and draft legal-review status are documented in `docs/LEGAL_ACCEPTANCE.md`. Signup navigation preserves only non-password fields in session storage.
+
 One shared market polling scheduler runs up to three requests concurrently, refreshes the active instrument about every 2.5 seconds and visible watchlist rows about every 5 seconds, pauses in hidden tabs, removes unmounted subscriptions and backs off failures. Position P&L refreshes from the server every 10 seconds; portfolio/P&L every 15 seconds. No browser WebSocket handshake or event schema is documented, so no invented socket connection is used.
 
 The chart uses `/stocks/{id}/historical` for validated OHLC candles and `/stocks/{id}/ltp` for the price line/current candle when timestamp information permits. ResizeObserver resizes it; crosshair, pan and zoom use Lightweight Charts. TradingView attribution and its notice are included.
@@ -61,7 +63,7 @@ The user and admin panels now share the COSMOS-reference layout: navy navigation
 
 ## Official branding assets
 
-`public/branding/tradbullking-logo-full.png` and `tradbullking-logo-transparent.png` are unmodified copies of the supplied September 18 brand assets (source/copy SHA-256 hashes match). `src/components/Brand.jsx` centrally selects the full logo for auth, loading and membership, and the transparent logo for user/admin workspace headers and navigation. White backing preserves the original dark wordmark on navy sidebars. Images retain their aspect ratio; plain TRADBULLKING text appears only after an image-load failure. No logo filters or redesigned artwork are used.
+`public/branding/tradbullking-logo-full.png` and `tradbullking-logo-transparent.png` are display-ready, tightly cropped copies of the supplied September 19 TRADE KING artwork. `src/components/Brand.jsx` centrally selects the full logo for auth, loading and membership, and the compact copy for user/admin workspace headers and navigation. The PWA and browser icons use the isolated bull mark from the same supplied artwork. White backing preserves the dark wordmark on navy sidebars, and plain TRADBULLKING text appears only after an image-load failure.
 
 Branding checks: login/signup/admin login and user/admin overview/membership at 375×812, 768×1024 and 1440×900; all visible images loaded, contain scaling retained and no horizontal overflow. The isolated workspace QA console reported no warnings/errors. Production build passed after asset integration.
 

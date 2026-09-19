@@ -6,6 +6,7 @@ import {
   sessionRevision,
 } from "./session.js";
 import { tokens, unwrap } from "./adapters.js";
+import { toastWarning } from "./toastService.js";
 // Use the configured backend directly in development and production.
 const baseURL = (
   import.meta.env?.VITE_API_BASE_URL || "http://91.108.110.56/api"
@@ -16,6 +17,13 @@ const options = {
   headers: { "Content-Type": "application/json" },
 };
 export const publicApi = axios.create(options);
+function expireSession(role) {
+  clearSession(role);
+  toastWarning("Your session has expired. Please login again.", {
+    id: `session-expired-${role}`,
+    duration: 6000,
+  });
+}
 export function createRoleClient(role) {
   const client = axios.create(options);
   let refreshing = null;
@@ -33,7 +41,7 @@ export function createRoleClient(role) {
       if (error.response?.status !== 401 || !config)
         return Promise.reject(error);
       if (config._retried) {
-        clearSession(role);
+        expireSession(role);
         return Promise.reject(error);
       }
       const session = readSession(role);
@@ -42,7 +50,7 @@ export function createRoleClient(role) {
           new Error("Your account changed. Please submit the request again."),
         );
       if (!session?.refreshToken) {
-        clearSession(role);
+        expireSession(role);
         return Promise.reject(error);
       }
       config._retried = true;
@@ -58,7 +66,7 @@ export function createRoleClient(role) {
             updateSession(role, tokens(unwrap(response)));
           })
           .catch((err) => {
-            if (sessionRevision(role) === revision) clearSession(role);
+            if (sessionRevision(role) === revision) expireSession(role);
             throw err;
           })
           .finally(() => {
@@ -78,8 +86,29 @@ export function createRoleClient(role) {
 export const userApi = createRoleClient("user");
 export const adminApi = createRoleClient("admin");
 export default userApi;
-export function errorMessage(error) {
-  if (error.response?.data?.message) return error.response.data.message;
+function safeServerMessage(value) {
+  if (typeof value !== "string") return "";
+  const message = value.trim();
+  if (
+    !message ||
+    /\b(jwt|refresh token|access token|password|totp|secret|stack trace|sql|mongodb|prisma|axioserror)\b/i.test(message) ||
+    /^request failed with status code \d+$/i.test(message)
+  )
+    return "";
+  return message.slice(0, 240);
+}
+export function getApiErrorMessage(error, fallback) {
+  const data = error?.response?.data;
+  const candidates = [
+    data?.message,
+    data?.error,
+    data?.data?.message,
+    ...(Array.isArray(data?.errors)
+      ? data.errors.map((item) => item?.message ?? item)
+      : []),
+  ];
+  const serverMessage = candidates.map(safeServerMessage).find(Boolean);
+  if (serverMessage) return serverMessage;
   if (error.code === "ECONNABORTED")
     return "The server is taking longer than expected. Please retry in a moment.";
   if (error.code === "ERR_NETWORK")
@@ -98,6 +127,9 @@ export function errorMessage(error) {
     messages[status] ||
     (status >= 500
       ? "The server is temporarily unavailable. Please retry."
-      : error.message || "Something went wrong. Please retry.")
+      : safeServerMessage(error?.message) ||
+        fallback ||
+        "Something went wrong. Please try again.")
   );
 }
+export const errorMessage = getApiErrorMessage;

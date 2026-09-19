@@ -28,7 +28,12 @@ import {
   ConfirmDialog,
   StatusBadge,
 } from "../../components/DataView";
-import { QueryState, Notice } from "../../components/Feedback";
+import { QueryState } from "../../components/Feedback";
+import {
+  toastError,
+  toastLoading,
+  toastSuccess,
+} from "../../services/toastService";
 import { formatINR } from "../../utils/format";
 function InstrumentPicker({ onPick, onClose }) {
   const [search, setSearch] = useState("");
@@ -205,9 +210,18 @@ export function StockForm({ stock, onClose }) {
         ? adminService.editStock(stock.id, body)
         : adminService.addStock(body));
       store.dispatch(invalidate());
+      toastSuccess(
+        edit ? "Instrument updated successfully." : "Instrument added successfully.",
+        { id: "stock-form" },
+      );
       onClose();
     } catch (err) {
-      setError(errorMessage(err));
+      const message = errorMessage(
+        err,
+        edit ? "Unable to update instrument." : "Unable to add instrument.",
+      );
+      setError(message);
+      toastError(message, { id: "stock-form" });
     } finally {
       lock.current = false;
       setBusy(false);
@@ -335,7 +349,6 @@ export default function Stocks() {
   const [form, setForm] = useState(null);
   const [action, setAction] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState(null);
   const [togglingIds, setTogglingIds] = useState(() => new Set());
   async function quickToggle(stock) {
     if (togglingIds.has(stock.id)) return;
@@ -343,8 +356,14 @@ export default function Stocks() {
     try {
       await adminService.toggleStock(stock.id);
       store.dispatch(invalidate());
+      toastSuccess(
+        stock.isActive ? "Instrument disabled." : "Instrument enabled.",
+        { id: `stock-toggle-${stock.id}` },
+      );
     } catch (err) {
-      setNotice({ severity: "error", message: errorMessage(err) });
+      toastError(errorMessage(err, "Unable to update instrument."), {
+        id: `stock-toggle-${stock.id}`,
+      });
     } finally {
       setTogglingIds((prev) => {
         const next = new Set(prev);
@@ -356,6 +375,8 @@ export default function Stocks() {
   async function confirm() {
     if (busy) return;
     setBusy(true);
+    if (action.type === "sync")
+      toastLoading("Syncing market prices…", { id: "stock-sync" });
     try {
       if (action.type === "delete")
         await adminService.deleteStock(action.stock.id);
@@ -367,10 +388,26 @@ export default function Stocks() {
         );
       else await adminService.sync();
       store.dispatch(invalidate());
+      const message =
+        action.type === "delete"
+          ? "Instrument deleted successfully."
+          : action.type === "enableAll"
+            ? "Instruments enabled successfully."
+            : "Market prices synced successfully.";
+      toastSuccess(message, {
+        id: action.type === "sync" ? "stock-sync" : "stock-operation",
+      });
       setAction(null);
-      setNotice({ message: "Stock operation completed." });
     } catch (err) {
-      setNotice({ severity: "error", message: errorMessage(err) });
+      toastError(
+        errorMessage(
+          err,
+          action.type === "sync"
+            ? "Unable to sync market prices."
+            : "Unable to update instrument.",
+        ),
+        { id: action.type === "sync" ? "stock-sync" : "stock-operation" },
+      );
     } finally {
       setBusy(false);
     }
@@ -550,7 +587,6 @@ export default function Stocks() {
         onConfirm={confirm}
         busy={busy}
       />
-      <Notice notice={notice} onClose={() => setNotice(null)} />
     </>
   );
 }

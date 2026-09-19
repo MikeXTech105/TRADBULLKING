@@ -34,6 +34,17 @@ import { watchlistService } from "../src/services/watchlistService.js";
 import { paymentService } from "../src/services/paymentService.js";
 import { adminService } from "../src/services/adminService.js";
 import { formatINR, formatPercent, formatPnl } from "../src/utils/format.js";
+import {
+  showToast,
+  subscribeToasts,
+  toastLoading,
+  toastSuccess,
+} from "../src/services/toastService.js";
+import {
+  clearSignupDraft,
+  readSignupDraft,
+  saveSignupDraft,
+} from "../src/services/signupDraft.js";
 const defaults = [publicApi, userApi, adminApi].map(
   (client) => client.defaults.adapter,
 );
@@ -230,6 +241,7 @@ test("real login/register payloads and profile verification do not persist passw
     phone: "",
     password: "test-password",
     confirmPassword: "test-password",
+    acceptedTerms: true,
   });
   assert.deepEqual(payloads[0], [
     "/auth/register",
@@ -249,14 +261,29 @@ test("real login/register payloads and profile verification do not persist passw
     loginAdmin({ email: "qa@example.com", password: "test-password" }),
   );
   assert.ok(readSession("user"));
-  assert.ok(
-    validateSignup({
+  const invalidSignup = validateSignup({
       name: "",
       email: "x",
       phone: "x",
       password: "x",
       confirmPassword: "y",
-    }).name,
+      acceptedTerms: false,
+    });
+  assert.ok(invalidSignup.name);
+  assert.equal(
+    invalidSignup.acceptedTerms,
+    "You must accept the Terms & Conditions to continue.",
+  );
+  await assert.rejects(
+    signupUser({
+      name: "QA User",
+      email: "qa@example.com",
+      phone: "",
+      password: "test-password",
+      confirmPassword: "test-password",
+      acceptedTerms: false,
+    }),
+    /accept the Terms/,
   );
 });
 test("live list envelopes preserve outer pagination and stocks in watchlist", () => {
@@ -447,4 +474,56 @@ test("Indian formatting and meaningful network/HTTP errors", () => {
     }),
     "Trial ended",
   );
+  assert.equal(
+    errorMessage({
+      message: "Request failed with status code 400",
+      response: { status: 400, data: { data: { message: "Invalid quantity" } } },
+    }),
+    "Invalid quantity",
+  );
+  assert.equal(
+    errorMessage({ message: "Request failed with status code 503" }),
+    "Something went wrong. Please try again.",
+  );
+});
+
+test("central toast service deduplicates messages and replaces loading toasts", () => {
+  const events = [];
+  const unsubscribe = subscribeToasts((event) => events.push(event));
+  const first = showToast("Deduplication fixture");
+  const duplicate = showToast("Deduplication fixture");
+  assert.equal(duplicate, first);
+  assert.equal(events.length, 1);
+  const loading = toastLoading("Working…", { id: "fixture-operation" });
+  toastSuccess("Completed.", { id: loading });
+  assert.equal(events.at(-2).toast.id, "fixture-operation");
+  assert.equal(events.at(-2).toast.severity, "loading");
+  assert.equal(events.at(-1).toast.id, "fixture-operation");
+  assert.equal(events.at(-1).toast.severity, "success");
+  unsubscribe();
+});
+
+test("signup legal-page draft preserves safe fields and never stores passwords", () => {
+  saveSignupDraft({
+    name: "Draft User",
+    email: "draft@example.com",
+    phone: "9876543210",
+    password: "must-not-persist",
+    confirmPassword: "must-not-persist",
+    acceptedTerms: true,
+  });
+  assert.deepEqual(readSignupDraft(), {
+    name: "Draft User",
+    email: "draft@example.com",
+    phone: "9876543210",
+    acceptedTerms: true,
+  });
+  assert.ok(!sessionStorage.getItem("tbk_signup_draft").includes("must-not-persist"));
+  clearSignupDraft();
+  assert.deepEqual(readSignupDraft(), {
+    name: "",
+    email: "",
+    phone: "",
+    acceptedTerms: false,
+  });
 });

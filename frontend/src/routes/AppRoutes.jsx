@@ -33,6 +33,8 @@ const AdminInstruments = lazy(() => import("../pages/admin/Instruments"));
 const AdminLeaderboard = lazy(() => import("../pages/admin/Leaderboard"));
 const AdminSettings = lazy(() => import("../pages/admin/Settings"));
 const AdminOrders = lazy(() => import("../pages/admin/Orders"));
+const Terms = lazy(() => import("../pages/legal/Terms"));
+const Privacy = lazy(() => import("../pages/legal/Privacy"));
 function Fallback() {
   const { pathname } = useLocation();
   return (
@@ -61,6 +63,9 @@ export default function AppRoutes() {
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/terms-and-conditions" element={<Terms />} />
+        <Route path="/terms" element={<Navigate to="/terms-and-conditions" replace />} />
+        <Route path="/privacy-policy" element={<Privacy />} />
         <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route element={<UserProtectedRoute />}>

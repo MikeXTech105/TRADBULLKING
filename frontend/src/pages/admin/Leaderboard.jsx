@@ -21,7 +21,8 @@ import {
   DataTable,
   ConfirmDialog,
 } from "../../components/DataView";
-import { QueryState, Notice } from "../../components/Feedback";
+import { QueryState } from "../../components/Feedback";
+import { toastError, toastSuccess } from "../../services/toastService";
 import { formatPnl, formatPercent, pnlClass } from "../../utils/format";
 function EntryForm({ entry, onClose }) {
   const edit = Boolean(entry?.id);
@@ -95,9 +96,15 @@ function EntryForm({ entry, onClose }) {
         ? adminService.editEntry(entry.id, body)
         : adminService.addEntry(body));
       store.dispatch(invalidate());
+      toastSuccess(
+        edit ? "Entry updated successfully." : "Entry added successfully.",
+        { id: "leaderboard-form" },
+      );
       onClose();
     } catch (err) {
-      setError(errorMessage(err));
+      const message = errorMessage(err, "Unable to update leaderboard entry.");
+      setError(message);
+      toastError(message, { id: "leaderboard-form" });
     } finally {
       lock.current = false;
       setBusy(false);
@@ -172,7 +179,6 @@ export default function Leaderboard() {
   const [form, setForm] = useState(null);
   const [remove, setRemove] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState(null);
   async function confirm() {
     if (busy) return;
     setBusy(true);
@@ -180,9 +186,11 @@ export default function Leaderboard() {
       await adminService.deleteEntry(remove.id);
       store.dispatch(invalidate());
       setRemove(null);
-      setNotice({ message: "Synthetic entry deleted." });
+      toastSuccess("Entry deleted successfully.", { id: "leaderboard-delete" });
     } catch (err) {
-      setNotice({ severity: "error", message: errorMessage(err) });
+      toastError(errorMessage(err, "Unable to delete leaderboard entry."), {
+        id: "leaderboard-delete",
+      });
     } finally {
       setBusy(false);
     }
@@ -272,7 +280,6 @@ export default function Leaderboard() {
         onConfirm={confirm}
         busy={busy}
       />
-      <Notice notice={notice} onClose={() => setNotice(null)} />
     </>
   );
 }

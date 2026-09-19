@@ -16,6 +16,7 @@ import {
   WorkspaceHeader,
 } from "../components/WorkspaceChrome";
 import { logoutAdmin } from "../services/authService";
+import { toastSuccess } from "../services/toastService";
 const links = [
   ["/admin/dashboard", "Dashboard", LayoutDashboard],
   ["/admin/users", "Users", Users],
@@ -32,6 +33,7 @@ export default function AdminLayout() {
   const user = useSelector((s) => s.auth.admin);
   const logout = () => {
     logoutAdmin();
+    toastSuccess("Admin session ended.", { id: "admin-logout" });
     setOpen(false);
     navigate("/admin/login", { replace: true });
   };

@@ -23,7 +23,8 @@ import {
   Pagination,
   ConfirmDialog,
 } from "../../components/DataView";
-import { QueryState, Notice } from "../../components/Feedback";
+import { QueryState } from "../../components/Feedback";
+import { toastError, toastSuccess } from "../../services/toastService";
 import { StockForm } from "./Stocks";
 import {
   formatINR,
@@ -98,7 +99,6 @@ export default function Instruments() {
   const [draft, setDraft] = useState(null);
   const [confirmAddAll, setConfirmAddAll] = useState(false);
   const [bulkAdding, setBulkAdding] = useState(false);
-  const [notice, setNotice] = useState(null);
   const resetPage = () => setPage(1);
   const query = useQuery(
     (signal) =>
@@ -148,12 +148,14 @@ export default function Instruments() {
     const failed = results.filter((r) => r.status === "rejected");
     const noun = (n) => `${n} instrument${n === 1 ? "" : "s"}`;
     if (!failed.length)
-      setNotice({ message: `Added ${noun(results.length)} to trading.` });
-    else
-      setNotice({
-        severity: "error",
-        message: `Added ${noun(results.length - failed.length)} of ${results.length}. ${failed.length} failed: ${errorMessage(failed[0].reason)}`,
+      toastSuccess(`Added ${noun(results.length)} to trading.`, {
+        id: "instruments-add-all",
       });
+    else
+      toastError(
+        `Added ${noun(results.length - failed.length)} of ${results.length}. ${failed.length} failed: ${errorMessage(failed[0].reason)}`,
+        { id: "instruments-add-all" },
+      );
   }
   const tokens = useMemo(() => rows.map((r) => r.token), [rows]);
   const prices = useTokenPrices(tokens);
@@ -356,7 +358,6 @@ export default function Instruments() {
         onConfirm={addAll}
         busy={bulkAdding}
       />
-      <Notice notice={notice} onClose={() => setNotice(null)} />
     </>
   );
 }
