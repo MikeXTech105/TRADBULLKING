@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Users,
   ChartNoAxesCombined,
+  Search,
   Trophy,
   Settings,
   ClipboardList,
@@ -15,10 +16,12 @@ import {
   WorkspaceHeader,
 } from "../components/WorkspaceChrome";
 import { logoutAdmin } from "../services/authService";
+import { toastSuccess } from "../services/toastService";
 const links = [
   ["/admin/dashboard", "Dashboard", LayoutDashboard],
   ["/admin/users", "Users", Users],
-  ["/admin/stocks", "Instruments", ChartNoAxesCombined],
+  ["/admin/stocks", "Stocks", ChartNoAxesCombined],
+  ["/admin/instruments", "Instruments & Symbols", Search],
   ["/admin/orders", "Trading history", ClipboardList],
   ["/admin/leaderboard", "Leaderboard", Trophy],
   ["/admin/settings", "Settings & account", Settings],
@@ -30,6 +33,7 @@ export default function AdminLayout() {
   const user = useSelector((s) => s.auth.admin);
   const logout = () => {
     logoutAdmin();
+    toastSuccess("Admin session ended.", { id: "admin-logout" });
     setOpen(false);
     navigate("/admin/login", { replace: true });
   };

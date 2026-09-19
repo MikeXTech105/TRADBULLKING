@@ -14,9 +14,9 @@ export function BrandLogo({ variant = "full", className = "" }) {
     <img
       className={`brand-logo ${className}`}
       src={brandAssets[variant] || brandAssets.full}
-      alt="TRADBULLKING"
-      width={variant === "transparent" ? 866 : 2172}
-      height={variant === "transparent" ? 288 : 724}
+      alt="TRADE KING — Trade Smarter, Trade Higher"
+      width={1744}
+      height={608}
       onError={() => setFailed(true)}
     />
   );

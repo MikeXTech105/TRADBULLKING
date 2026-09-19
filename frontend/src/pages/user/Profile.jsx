@@ -20,7 +20,8 @@ import {
 } from "../../services/authService";
 import { errorMessage } from "../../services/api";
 import { PageHeader, StatCards } from "../../components/DataView";
-import { Notice, SlowNotice } from "../../components/Feedback";
+import { SlowNotice } from "../../components/Feedback";
+import { toastError, toastSuccess } from "../../services/toastService";
 import PasswordField from "../../components/PasswordField";
 import InstallAppPrompt from "../../components/InstallAppPrompt";
 import { usePWAInstall } from "../../hooks/usePWAInstall";
@@ -36,7 +37,6 @@ export default function Profile({ admin = false }) {
   });
   const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState(null);
   const [open, setOpen] = useState(false);
   const [passwords, setPasswords] = useState({
     oldPassword: "",
@@ -62,9 +62,11 @@ export default function Profile({ admin = false }) {
     setBusy(true);
     try {
       await updateProfile(values, role);
-      setNotice({ message: "Profile updated." });
+      toastSuccess("Profile updated successfully.", { id: `${role}-profile` });
     } catch (err) {
-      setNotice({ message: errorMessage(err), severity: "error" });
+      toastError(errorMessage(err, "Unable to update profile."), {
+        id: `${role}-profile`,
+      });
     } finally {
       lock.current = false;
       setBusy(false);
@@ -90,9 +92,13 @@ export default function Profile({ admin = false }) {
       await changePassword(passwords, role);
       setPasswords({ oldPassword: "", newPassword: "", confirmPassword: "" });
       setOpen(false);
-      setNotice({ message: "Password changed successfully." });
+      toastSuccess("Password changed successfully.", {
+        id: `${role}-password`,
+      });
     } catch (err) {
-      setPasswordError(errorMessage(err));
+      const message = errorMessage(err, "Unable to change password.");
+      setPasswordError(message);
+      toastError(message, { id: `${role}-password` });
     } finally {
       lock.current = false;
       setBusy(false);
@@ -110,6 +116,9 @@ export default function Profile({ admin = false }) {
             startIcon={<LogOut size={16} />}
             onClick={() => {
               (admin ? logoutAdmin : logoutUser)();
+              toastSuccess(admin ? "Admin session ended." : "Logged out successfully.", {
+                id: admin ? "admin-logout" : "user-logout",
+              });
               navigate(admin ? "/admin/login" : "/login", { replace: true });
             }}
           >
@@ -143,6 +152,13 @@ export default function Profile({ admin = false }) {
                 <span aria-hidden="true">›</span>
               </Link>
             ))}
+            <h3 className="shortcut-group-title">Legal</h3>
+            <Link to="/terms-and-conditions" state={{ from: "/profile" }}>
+              Terms & Conditions <span aria-hidden="true">›</span>
+            </Link>
+            <Link to="/privacy-policy" state={{ from: "/profile" }}>
+              Privacy Policy <span aria-hidden="true">›</span>
+            </Link>
           </section>
         )}
         <section className="surface">
@@ -246,9 +262,11 @@ export default function Profile({ admin = false }) {
             onClick={async () => {
               try {
                 await getProfile(role);
-                setNotice({ message: "Account refreshed." });
+                toastSuccess("Account refreshed.", { id: `${role}-refresh` });
               } catch (err) {
-                setNotice({ severity: "error", message: errorMessage(err) });
+                toastError(errorMessage(err, "Unable to refresh account."), {
+                  id: `${role}-refresh`,
+                });
               }
             }}
           >
@@ -350,7 +368,6 @@ export default function Profile({ admin = false }) {
           }}
         />
       )}
-      <Notice notice={notice} onClose={() => setNotice(null)} />
     </>
   );
 }

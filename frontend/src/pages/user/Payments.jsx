@@ -19,25 +19,34 @@ import {
   Pagination,
   StatusBadge,
 } from "../../components/DataView";
-import { QueryState, Notice } from "../../components/Feedback";
+import { QueryState } from "../../components/Feedback";
+import { toastError, toastInfo, toastSuccess } from "../../services/toastService";
 function PaymentDetail({ id, onClose }) {
   const query = useQuery(() => paymentService.get(id), [id]);
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState(null);
   const record = query.data?.payment ?? query.data;
   async function verify() {
     if (busy) return;
     setBusy(true);
     try {
       await paymentService.verify(id);
+      const refreshed = await paymentService.get(id);
+      const refreshedRecord = refreshed.payment ?? refreshed;
       await getProfile();
       store.dispatch(invalidate());
       query.retry();
-      setNotice({
-        message: "Payment and account status refreshed from the server.",
-      });
+      if (refreshedRecord?.status === "SUCCESS")
+        toastSuccess("Payment successful. Membership activated.", {
+          id: `payment-${id}`,
+        });
+      else if (refreshedRecord?.status === "FAILED")
+        toastError("Payment failed. Please try again.", { id: `payment-${id}` });
+      else
+        toastInfo("Payment verification pending.", { id: `payment-${id}` });
     } catch (err) {
-      setNotice({ message: errorMessage(err), severity: "error" });
+      toastError(errorMessage(err, "Payment verification failed."), {
+        id: `payment-${id}`,
+      });
     } finally {
       setBusy(false);
     }
@@ -75,7 +84,6 @@ function PaymentDetail({ id, onClose }) {
             </div>
           </dl>
         </QueryState>
-        <Notice notice={notice} onClose={() => setNotice(null)} />
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Close</Button>

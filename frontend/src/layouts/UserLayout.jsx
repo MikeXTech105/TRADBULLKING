@@ -21,6 +21,7 @@ import {
 } from "../components/WorkspaceChrome";
 import TrialStatusBanner from "../components/TrialStatusBanner";
 import { logoutUser, getProfile } from "../services/authService";
+import { toastSuccess } from "../services/toastService";
 const navigation = [
   ["/dashboard", "Overview", LayoutDashboard],
   ["/watchlist", "Watchlist", List],
@@ -67,6 +68,7 @@ export default function UserLayout() {
   const { pathname } = useLocation();
   const logout = () => {
     logoutUser();
+    toastSuccess("Logged out successfully.", { id: "user-logout" });
     navigate("/login", { replace: true });
   };
   return (

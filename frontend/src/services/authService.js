@@ -23,6 +23,9 @@ export function validateSignup(values) {
     errors.password = "Use at least 6 characters.";
   if (values.password !== values.confirmPassword)
     errors.confirmPassword = "Passwords do not match.";
+  if (!values.acceptedTerms)
+    errors.acceptedTerms =
+      "You must accept the Terms & Conditions to continue.";
   return errors;
 }
 export async function getProfile(role = "user") {
@@ -61,6 +64,8 @@ async function login(role, values) {
 export const loginUser = (values) => login("user", values);
 export const loginAdmin = (values) => login("admin", values);
 export async function signupUser(values) {
+  if (!values.acceptedTerms)
+    throw new Error("You must accept the Terms & Conditions to continue.");
   const data = unwrap(
     await publicApi.post("/auth/register", {
       name: values.name.trim(),

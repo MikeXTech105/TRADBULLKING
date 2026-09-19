@@ -15,7 +15,8 @@ import { watchlistService } from "../../services/watchlistService";
 import { errorMessage } from "../../services/api";
 import { store, invalidate } from "../../store/store";
 import { PageHeader, Pagination } from "../../components/DataView";
-import { QueryState, Notice } from "../../components/Feedback";
+import { QueryState } from "../../components/Feedback";
+import { toastError, toastSuccess } from "../../services/toastService";
 import StockList from "../../components/StockList";
 export default function Market() {
   const [search, setSearch] = useState("");
@@ -23,7 +24,6 @@ export default function Market() {
   const [exchange, setExchange] = useState("");
   const [page, setPage] = useState(1);
   const [busy, setBusy] = useState(null);
-  const [notice, setNotice] = useState(null);
   const [angel, setAngel] = useState(false);
   const [angelResults, setAngelResults] = useState(null);
   const query = useQuery(
@@ -42,9 +42,11 @@ export default function Market() {
     try {
       await watchlistService.add(id);
       store.dispatch(invalidate());
-      setNotice({ message: "Instrument added to your watchlist." });
+      toastSuccess("Added to watchlist.", { id: `watchlist-${id}` });
     } catch (e) {
-      setNotice({ message: errorMessage(e), severity: "error" });
+      toastError(errorMessage(e, "Unable to update watchlist."), {
+        id: `watchlist-${id}`,
+      });
     } finally {
       setBusy(null);
     }
@@ -59,7 +61,9 @@ export default function Market() {
       });
       setAngelResults(result);
     } catch (e) {
-      setNotice({ message: errorMessage(e), severity: "error" });
+      toastError(errorMessage(e, "Unable to search instruments."), {
+        id: "instrument-search",
+      });
     } finally {
       setBusy(null);
     }
@@ -128,7 +132,6 @@ export default function Market() {
         </QueryState>
         {!q && <Pagination page={page} onChange={setPage} data={query.data} />}
       </section>
-      <Notice notice={notice} onClose={() => setNotice(null)} />
       <Dialog
         open={angel}
         onClose={() => setAngel(false)}

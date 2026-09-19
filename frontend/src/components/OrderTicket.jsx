@@ -8,6 +8,7 @@ import { errorMessage } from "../services/api";
 import { formatINR, hasNumber } from "../utils/format";
 import { store, invalidate } from "../store/store";
 import { SlowNotice } from "./Feedback";
+import { toastError, toastSuccess, toastWarning } from "../services/toastService";
 export default function OrderTicket({
   stock,
   quote,
@@ -23,7 +24,6 @@ export default function OrderTicket({
   const [errors, setErrors] = useState({});
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [success, setSuccess] = useState("");
   const price = priceType === "LIMIT" ? limitPrice : (quote?.ltp ?? stock?.ltp);
   const value =
     hasNumber(price) && hasNumber(quantity)
@@ -47,28 +47,35 @@ export default function OrderTicket({
       orderPayload(values);
     } catch (err) {
       setError(err.message);
+      toastWarning(err.message, { id: "order-validation" });
       return;
     }
     lock.current = true;
     setBusy(true);
     setError("");
-    setSuccess("");
     try {
       const result = await orderService.place(values);
       store.dispatch(invalidate());
-      setSuccess(
-        result?.order?.status === "PENDING" || result?.status === "PENDING"
-          ? "Limit order submitted. Awaiting execution."
-          : "Order submitted. Check Orders for execution status.",
-      );
+      const status = result?.order?.status ?? result?.status;
+      const message =
+        status === "PENDING"
+          ? `Limit ${side} order placed successfully.`
+          : ["EXECUTED", "COMPLETED", "FILLED"].includes(status)
+            ? `${side} order executed successfully.`
+            : `${side} order submitted successfully.`;
+      toastSuccess(message, { id: "order-submit" });
       try {
         await getProfile();
       } catch {
-        setSuccess("Order submitted. Refresh your account to update balances.");
+        toastWarning("Order submitted. Refresh your account to update balances.", {
+          id: "order-balance-refresh",
+        });
       }
       onSuccess?.(result);
     } catch (err) {
-      setError(errorMessage(err));
+      const message = errorMessage(err, "Market order could not be submitted.");
+      setError(message);
+      toastError(message, { id: "order-submit" });
     } finally {
       lock.current = false;
       setBusy(false);
@@ -86,7 +93,6 @@ export default function OrderTicket({
           type="button"
           onClick={() => {
             setSide("BUY");
-            setSuccess("");
           }}
         >
           BUY
@@ -96,7 +102,6 @@ export default function OrderTicket({
           type="button"
           onClick={() => {
             setSide("SELL");
-            setSuccess("");
           }}
         >
           SELL
@@ -168,11 +173,6 @@ export default function OrderTicket({
         {error && (
           <Alert severity="error" className="form-alert">
             {error} <Link to="/membership">View membership</Link>
-          </Alert>
-        )}
-        {success && (
-          <Alert severity="success" className="form-alert">
-            {success}
           </Alert>
         )}
         <SlowNotice busy={busy} />
