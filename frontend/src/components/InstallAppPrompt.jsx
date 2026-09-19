@@ -20,7 +20,7 @@ function InstallSheetHeader({ ios, onClose }) {
           alt=""
           className="install-sheet-icon"
         />
-        {ios ? "Add TRADBULLKING to your Home Screen" : "Install TRADBULLKING"}
+        {ios ? "Add TRADEBULLKING to your Home Screen" : "Install TRADEBULLKING"}
       </span>
       <IconButton aria-label="Close" onClick={onClose}>
         <X size={17} />
@@ -34,7 +34,7 @@ function InstallSheetBody({ ios, onInstall, onDismiss }) {
     <div className="sheet-body install-sheet-body">
       {ios ? (
         <>
-          <p>Install TRADBULLKING for a full-screen app experience.</p>
+          <p>Install TRADEBULLKING for a full-screen app experience.</p>
           <ol className="install-steps">
             <li>
               <Share size={16} />

@@ -49,7 +49,7 @@ export default function Portfolio() {
         </QueryState>
       </section>
       <div className="information-strip">
-        Balances and performance are supplied by TRADBULLKING. Paper trading
+        Balances and performance are supplied by TRADEBULLKING. Paper trading
         funds have no cash value.
       </div>
     </>

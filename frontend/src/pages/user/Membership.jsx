@@ -146,7 +146,7 @@ export default function Membership() {
           <BrandLogo className="membership-brand" />
           <span className="membership-badge">
             <Crown size={15} />
-            TRADBULLKING PREMIUM
+            TRADEBULLKING PREMIUM
           </span>
           <h2>Membership plan</h2>
           <div className="membership-price">

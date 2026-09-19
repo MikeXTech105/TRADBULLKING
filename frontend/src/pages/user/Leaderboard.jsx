@@ -146,7 +146,7 @@ export default function Leaderboard() {
   return (
     <>
       <PageHeader
-        eyebrow="THE TRADBULLKING LEADERBOARD"
+        eyebrow="THE TRADEBULLKING LEADERBOARD"
         title="Leaderboard"
         description="A closer look at the traders setting the pace."
       />

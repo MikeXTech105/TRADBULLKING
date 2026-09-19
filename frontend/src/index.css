@@ -2410,11 +2410,6 @@ input:-webkit-autofill {
   .mobile-brand .brand img {
     width: 215px;
   }
-  .mobile-tagline {
-    font-size: 8px;
-    color: var(--muted);
-    letter-spacing: 0.6px;
-  }
   .portal-nav {
     justify-content: center;
     gap: 24px;

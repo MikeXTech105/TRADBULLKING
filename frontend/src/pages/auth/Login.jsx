@@ -64,7 +64,7 @@ export default function Login({ admin = false }) {
         <LogIn size={23} />
       </div>
       <span className="form-eyebrow">
-        {admin ? "TRADBULLKING ADMIN" : "WELCOME TO TRADBULLKING"}
+        {admin ? "TRADEBULLKING ADMIN" : "WELCOME TO TRADEBULLKING"}
       </span>
       <h2>{admin ? "Administrator login." : "Welcome back."}</h2>
       <p className="form-description">
@@ -133,11 +133,10 @@ export default function Login({ admin = false }) {
           <p>
             Reserved for authorized administrators.
             <br />
-            Account access is verified by TRADBULLKING.
+            Account access is verified by TRADEBULLKING.
           </p>
         </div>
       )}
-      <div className="demo-note">Paper trading. Real market perspective.</div>
     </AuthLayout>
   );
 }
