@@ -18,10 +18,10 @@ export default function MarketConnectionNotifier() {
           return;
         }
         interrupted.current = true;
-        toastWarning("Live market connection interrupted. Reconnecting…", {
-          id: "market-connection",
-          persist: true,
-        });
+        // toastWarning("Live market connection interrupted. Reconnecting…", {
+        //   id: "market-connection",
+        //   persist: true,
+        // });
       }),
     [],
   );

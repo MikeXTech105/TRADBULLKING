@@ -70,7 +70,7 @@ export default function AdminLayout() {
         <main className="content-wrap">
           <Outlet />
         </main>
-        <footer className="app-footer">TRADBULLKING · Administration</footer>
+        <footer className="app-footer">TRADEBULLKING · Administration</footer>
       </div>
     </div>
   );

@@ -235,9 +235,6 @@ export default function Signup() {
       <p className="switch-form">
         Already have an account? <Link to="/login">Login</Link>
       </p>
-      <div className="demo-note">
-        Paper trading only · No real securities are purchased
-      </div>
     </AuthLayout>
   );
 }

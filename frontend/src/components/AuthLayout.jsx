@@ -1,6 +1,5 @@
 import Brand from "./Brand";
-import { Link } from "react-router-dom";
-import { ArrowUpRight, ShieldCheck, LockKeyhole } from "lucide-react";
+import { ShieldCheck, LockKeyhole } from "lucide-react";
 export default function AuthLayout({
   children,
   admin = false,
@@ -36,7 +35,7 @@ export default function AuthLayout({
           </h1>
           <p>
             {admin
-              ? "A dedicated space for the people behind TRADBULLKING."
+              ? "A dedicated space for the people behind TRADEBULLKING."
               : "Follow market prices, place paper orders, and review your portfolio in one workspace."}
           </p>
           <div className="brand-motto">
@@ -56,18 +55,17 @@ export default function AuthLayout({
       <section className={`form-panel ${signup ? "signup-panel" : ""}`}>
         <header className="mobile-brand">
           <Brand admin={admin} />
-          <span className="mobile-tagline">TRADE SMARTER — TRADE HIGHER</span>
         </header>
-        <div className="portal-nav">
+        {/* <div className="portal-nav">
           <span>{admin ? "ADMIN PORTAL" : "USER PORTAL"}</span>
           <Link to={admin ? "/login" : "/admin/login"}>
             {admin ? "User login" : "Admin access"}
             <ArrowUpRight size={15} />
           </Link>
-        </div>
+        </div> */}
         <main className="form-content">{children}</main>
         <footer className="form-footer">
-          <span>© {new Date().getFullYear()} TRADBULLKING</span>
+          <span>© {new Date().getFullYear()} TRADEBULLKING</span>
           <span>
             <LockKeyhole size={13} />{" "}
             {admin ? "Administrator access" : "Your journey starts here"}

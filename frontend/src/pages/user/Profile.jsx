@@ -313,7 +313,7 @@ export default function Profile({ admin = false }) {
             >
               {pwa.status === "installed"
                 ? "App Installed"
-                : "Install TRADBULLKING App"}
+                : "Install TRADEBULLKING App"}
             </Button>
           )}
         </section>

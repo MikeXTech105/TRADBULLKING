@@ -29,7 +29,7 @@ export default function InstallPromptController() {
       subscribe(() => {
         if (wasJustInstalled()) {
           setOpen(false);
-          toastSuccess("TRADBULLKING installed successfully.", {
+          toastSuccess("TRADEBULLKING installed successfully.", {
             id: "pwa-installed",
           });
         }

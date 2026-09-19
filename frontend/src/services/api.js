@@ -9,7 +9,7 @@ import { tokens, unwrap } from "./adapters.js";
 import { toastWarning } from "./toastService.js";
 // Use the configured backend directly in development and production.
 const baseURL = (
-  import.meta.env?.VITE_API_BASE_URL || "http://91.108.110.56/api"
+  import.meta.env?.VITE_API_BASE_URL || "https://api.tradebullking.com/api"
 ).replace(/\/+$/, "");
 const options = {
   baseURL,
@@ -112,7 +112,7 @@ export function getApiErrorMessage(error, fallback) {
   if (error.code === "ECONNABORTED")
     return "The server is taking longer than expected. Please retry in a moment.";
   if (error.code === "ERR_NETWORK")
-    return "Unable to connect to TRADBULLKING servers. Check your connection and retry.";
+    return "Unable to connect to TRADEBULLKING servers. Check your connection and retry.";
   const status = error.response?.status;
   const messages = {
     400: "Check your request and try again.",

@@ -12,7 +12,7 @@ export function SlowNotice({ busy }) {
   }, [busy]);
   return slow ? (
     <p className="slow-notice" role="status">
-      Connecting to TRADBULLKING servers…
+      Connecting to TRADEBULLKING servers…
     </p>
   ) : null;
 }
@@ -43,7 +43,7 @@ export function QueryState({
         ))}
         {query.slow && (
           <p className="slow-notice" role="status">
-            Connecting to TRADBULLKING servers…
+            Connecting to TRADEBULLKING servers…
           </p>
         )}
       </div>

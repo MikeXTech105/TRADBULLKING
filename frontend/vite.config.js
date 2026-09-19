@@ -15,9 +15,9 @@ export default defineConfig(({ mode }) => {
           "icons/favicon-64.png",
         ],
         manifest: {
-          name: "TRADBULLKING",
-          short_name: "TRADBULLKING",
-          description: "TRADBULLKING Paper Trading Platform",
+          name: "TRADEBULLKING",
+          short_name: "TRADEBULLKING",
+          description: "TRADEBULLKING Paper Trading Platform",
           start_url: "/",
           scope: "/",
           display: "standalone",

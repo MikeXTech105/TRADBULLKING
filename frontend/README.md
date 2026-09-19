@@ -1,4 +1,4 @@
-# TRADBULLKING frontend
+# TRADEBULLKING frontend
 
 Mobile-first paper trading app and administrator portal built with React, Vite, JavaScript, Material UI, Redux Toolkit, Axios, React Router, Lucide, TradingView Lightweight Charts and Cashfree.
 
@@ -63,7 +63,6 @@ The user and admin panels now share the COSMOS-reference layout: navy navigation
 
 ## Official branding assets
 
-`public/branding/tradbullking-logo-full.png` and `tradbullking-logo-transparent.png` are display-ready, tightly cropped copies of the supplied September 19 TRADE KING artwork. `src/components/Brand.jsx` centrally selects the full logo for auth, loading and membership, and the compact copy for user/admin workspace headers and navigation. The PWA and browser icons use the isolated bull mark from the same supplied artwork. White backing preserves the dark wordmark on navy sidebars, and plain TRADBULLKING text appears only after an image-load failure.
+`public/branding/Tradebullking-logo-full.png` and `Tradebullking-logo-transparent.png` are display-ready, tightly cropped copies of the supplied September 19 TRADE KING artwork. `src/components/Brand.jsx` centrally selects the full logo for auth, loading and membership, and the compact copy for user/admin workspace headers and navigation. The PWA and browser icons use the isolated bull mark from the same supplied artwork. White backing preserves the dark wordmark on navy sidebars, and plain TRADEBULLKING text appears only after an image-load failure.
 
 Branding checks: login/signup/admin login and user/admin overview/membership at 375×812, 768×1024 and 1440×900; all visible images loaded, contain scaling retained and no horizontal overflow. The isolated workspace QA console reported no warnings/errors. Production build passed after asset integration.
-

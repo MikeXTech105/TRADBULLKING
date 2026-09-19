@@ -5,7 +5,7 @@ import {
   unsubscribeTokens,
 } from "../services/socketClient.js";
 // Live prices keyed directly by AngelOne provider token, for instruments
-// that have no TRADBULLKING stockId yet (the admin instrument browser deals
+// that have no TRADEBULLKING stockId yet (the admin instrument browser deals
 // in raw provider catalogue entries, not onboarded Stock records) — so this
 // bypasses marketPollingService's stockId-keyed quote store and talks to
 // the shared socket connection's token-level subscription API directly.

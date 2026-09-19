@@ -89,7 +89,7 @@ export default function MobileReport() {
         </button>
       </MobileHeader>
       <div className="m-report">
-        <h2 className="m-report-title">TRADBULLKING</h2>
+        <h2 className="m-report-title">TRADEBULLKING</h2>
         <div className="m-report-meta">
           <span>Script Wise Bill (with brokerage)</span>
           <span>{last ? `${MON[last.getMonth()]}${pad(last.getDate())}` : ""}</span>

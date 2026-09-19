@@ -2,14 +2,14 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 
 export const brandAssets = {
-  full: "/branding/tradbullking-logo-full.png",
-  transparent: "/branding/tradbullking-logo-transparent.png",
+  full: "/branding/Tradebullking-logo-full.png",
+  transparent: "/branding/Tradebullking-logo-transparent.png",
 };
 
 export function BrandLogo({ variant = "full", className = "" }) {
   const [failed, setFailed] = useState(false);
   return failed ? (
-    <strong className="brand-fallback">TRADBULLKING</strong>
+    <strong className="brand-fallback">TRADEBULLKING</strong>
   ) : (
     <img
       className={`brand-logo ${className}`}
@@ -27,7 +27,7 @@ export default function Brand({ admin = false, variant = "full" }) {
     <Link
       className={`brand brand-${variant}`}
       to={admin ? "/admin/login" : "/login"}
-      aria-label={admin ? "TRADBULLKING ADMIN" : "TRADBULLKING"}
+      aria-label={admin ? "TRADEBULLKING ADMIN" : "TRADEBULLKING"}
     >
       <BrandLogo variant={variant} />
       {admin && <span className="admin-label">ADMIN</span>}

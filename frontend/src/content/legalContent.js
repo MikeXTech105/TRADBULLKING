@@ -3,7 +3,7 @@ export const termsSections = [
     id: "introduction",
     title: "1. Introduction",
     paragraphs: [
-      "These draft Terms & Conditions describe access to and use of the TRADBULLKING virtual/paper trading platform. They are structured for review and replacement by qualified legal counsel before production launch.",
+      "These draft Terms & Conditions describe access to and use of the TRADEBULLKING virtual/paper trading platform. They are structured for review and replacement by qualified legal counsel before production launch.",
     ],
   },
   {
@@ -31,14 +31,14 @@ export const termsSections = [
     id: "platform-nature",
     title: "5. Nature of the Platform",
     paragraphs: [
-      "TRADBULLKING provides tools for simulated trading practice, portfolio tracking, charts, market information, rankings, and related account features. Availability and features may change as the platform develops.",
+      "TRADEBULLKING provides tools for simulated trading practice, portfolio tracking, charts, market information, rankings, and related account features. Availability and features may change as the platform develops.",
     ],
   },
   {
     id: "paper-trading",
     title: "6. Virtual / Paper Trading",
     paragraphs: [
-      "Trades placed within TRADBULLKING are simulated and do not by themselves constitute real securities-market transactions. A future product involving real transactions would require separate, explicit disclosure and terms.",
+      "Trades placed within TRADEBULLKING are simulated and do not by themselves constitute real securities-market transactions. A future product involving real transactions would require separate, explicit disclosure and terms.",
     ],
   },
   {
